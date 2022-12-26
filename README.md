@@ -10,4 +10,5 @@ Be sure to [enable the right bot settings](https://github.com/discord-net/Discor
 Add your bot token to the appsettings.json file. 
 
 An icon was included using mid journey.
+
 <img src="images/discord-bot-icon.png" width="400" />
