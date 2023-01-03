@@ -20,7 +20,8 @@ public class Bot
     {
         Configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", false, true)
-            .AddJsonFile("appsettings.secret.json", false, true)
+            .AddJsonFile("appsettings.secret.json", true, true)
+            .AddEnvironmentVariables("DISCORD_")
             .Build();
         
         return new ServiceCollection()
@@ -59,7 +60,7 @@ public class Bot
         var listener = services.GetRequiredService<DiscordEventListener>();
         await listener.StartAsync();
 
-        await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("DISCORD_TOKEN") ?? Configuration["token"]);
+        await client.LoginAsync(TokenType.Bot, Configuration["token"]);
         await client.StartAsync();
 
         await Task.Delay(Timeout.Infinite);
