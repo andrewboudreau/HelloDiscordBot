@@ -13,10 +13,10 @@ namespace DiscordBotHost
             if (notification.Message.Content == "ping")
                 await notification.Message.Channel.SendMessageAsync($"pong to {notification.Message.Author.Username}");
 
-            if (notification.Message.Content == "test")
+            else if (notification.Message.Content == "test")
                 await notification.Message.Channel.SendMessageAsync($"Yeah {notification.Message.Author.Username}, I get it! You're testing!");
 
-            if (notification.Message.Content.StartsWith("echo"))
+            else if (notification.Message.Content.StartsWith("echo"))
                 await notification.Message.Channel.SendMessageAsync(notification.Message.Content[4..]);
         }
     }

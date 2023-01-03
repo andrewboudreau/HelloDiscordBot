@@ -8,42 +8,38 @@ namespace DiscordBotHost;
 
 public class DiscordEventListener
 {
-    private readonly CancellationToken _cancellationToken;
+    private readonly CancellationToken cancellationToken;
 
-    private readonly DiscordSocketClient _client;
-    private readonly IServiceScopeFactory _serviceScope;
+    private readonly DiscordSocketClient client;
+    private readonly IServiceScopeFactory serviceScopeFactory;
 
-    public DiscordEventListener(DiscordSocketClient client, IServiceScopeFactory serviceScope)
+    public DiscordEventListener(DiscordSocketClient client, IServiceScopeFactory serviceScopeFactory)
     {
-        _client = client;
-        _serviceScope = serviceScope;
-        _cancellationToken = new CancellationTokenSource().Token;
+        this.client = client;
+        this.serviceScopeFactory = serviceScopeFactory;
+        cancellationToken = new CancellationTokenSource().Token;
     }
-
-    private IMediator Mediator
-    {
-        get
-        {
-            var scope = _serviceScope.CreateScope();
-            return scope.ServiceProvider.GetRequiredService<IMediator>();
-        }
-    }
-
+    
     public Task StartAsync()
     {
-        _client.Ready += OnReadyAsync;
-        _client.MessageReceived += OnMessageReceivedAsync;
+        client.Ready += OnReadyAsync;
+        client.MessageReceived += OnMessageReceivedAsync;
 
         return Task.CompletedTask;
     }
 
-    private Task OnMessageReceivedAsync(SocketMessage arg)
+    private async Task OnMessageReceivedAsync(SocketMessage arg)
     {
-        return Mediator.Publish(new MessageReceivedNotification(arg), _cancellationToken);
+        var requestAborted = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var scope = serviceScopeFactory.CreateScope();
+        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+        await mediator.Publish(new MessageReceivedNotification(arg), requestAborted.Token);        
     }
 
-    private Task OnReadyAsync()
+    private async Task OnReadyAsync()
     {
-        return Mediator.Publish(ReadyNotification.Default, _cancellationToken);
+        using var scope = serviceScopeFactory.CreateScope();
+        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+        await mediator.Publish(ReadyNotification.Default, cancellationToken);
     }
 }
