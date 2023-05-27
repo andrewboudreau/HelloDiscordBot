@@ -13,4 +13,14 @@ namespace DiscordBotHost
 
         public SocketMessage Message { get; }
     }
+
+	public class ReactionReceivedNotification : INotification
+	{
+		public ReactionReceivedNotification(SocketMessage message)
+		{
+			Message = message ?? throw new ArgumentNullException(nameof(message));
+		}
+
+		public SocketMessage Message { get; }
+	}
 }
