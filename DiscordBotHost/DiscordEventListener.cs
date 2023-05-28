@@ -5,8 +5,6 @@ using MediatR;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using Serilog;
-
 namespace DiscordBotHost;
 
 /// <summary>
@@ -35,42 +33,12 @@ public class DiscordEventListener
 		return Task.CompletedTask;
 	}
 
-	private static ulong ChannelToSaveImagesTo = 1112051792721747988; 
-	private static readonly HttpClient httpClient = new HttpClient();
-
 	private async Task HandleReactionAdded(Cacheable<IUserMessage, ulong> cachedMessage, Cacheable<IMessageChannel, ulong> cachedChannel, SocketReaction reaction)
 	{
-		// Check if the reaction is the disk emoji
-		if (reaction.Emote.Name == "💾") // Replace "disk" with the actual name of your emoji
-		{
-			// Get the message and check if it has an attachment
-			var message = await cachedMessage.GetOrDownloadAsync();
-			if (message.Attachments.Count > 0)
-			{
-				// Get the target channel
-
-				if (client.GetChannel(ChannelToSaveImagesTo) is not IMessageChannel targetChannel)
-				{
-					Log.Error("The target channel was null when attempting to save.");
-					return;
-				}
-
-				// Send the attachment to the target channel
-				foreach (var attachment in message.Attachments)
-				{
-					var stream = await httpClient.GetStreamAsync(attachment.Url);
-					await targetChannel.SendFileAsync(stream, attachment.Filename);
-				}
-
-				// Send the link to the source message
-				if (cachedChannel.Value is SocketGuildChannel guildChannel)
-				{
-					string messageLink = $"https://discord.com/channels/{guildChannel.Guild.Id}/{cachedChannel.Id}/{cachedMessage.Id}";
-					string infoMessage = $"Source: {messageLink} | Created by: <@{message.Author.Id}> | Saved by: <@{reaction.UserId}>";
-					await targetChannel.SendMessageAsync(infoMessage);
-				}
-			}
-		}
+		var requestAborted = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+		using var scope = serviceScopeFactory.CreateScope();
+		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+		await mediator.Publish(new ReactionReceivedNotification(cachedMessage, cachedChannel, reaction, client), requestAborted.Token);
 	}
 
 	private async Task OnMessageReceivedAsync(SocketMessage arg)
@@ -78,7 +46,7 @@ public class DiscordEventListener
 		var requestAborted = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 		using var scope = serviceScopeFactory.CreateScope();
 		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-		await mediator.Publish(new MessageReceivedNotification(arg), requestAborted.Token);
+		await mediator.Publish(new MessageReceivedNotification(arg, client), requestAborted.Token);
 	}
 
 	private async Task OnReadyAsync()

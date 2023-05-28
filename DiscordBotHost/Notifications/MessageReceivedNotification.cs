@@ -4,23 +4,18 @@ using MediatR;
 
 namespace DiscordBotHost
 {
-    public class MessageReceivedNotification : INotification
-    {
-        public MessageReceivedNotification(SocketMessage message)
-        {
-            Message = message ?? throw new ArgumentNullException(nameof(message));
-        }
-
-        public SocketMessage Message { get; }
-    }
-
-	public class ReactionReceivedNotification : INotification
+	public class MessageReceivedNotification : INotification
 	{
-		public ReactionReceivedNotification(SocketMessage message)
+		public MessageReceivedNotification(SocketMessage message, DiscordSocketClient client)
 		{
-			Message = message ?? throw new ArgumentNullException(nameof(message));
+			ArgumentNullException.ThrowIfNull(message);
+			ArgumentNullException.ThrowIfNull(client);
+
+			Message = message;
+			Client = client;
 		}
 
 		public SocketMessage Message { get; }
+		public DiscordSocketClient Client { get; }
 	}
 }
