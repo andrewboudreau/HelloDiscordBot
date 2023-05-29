@@ -12,7 +12,12 @@ namespace DiscordBotHost
 		private static readonly ulong channelToSaveImagesTo = 1112051792721747988;
 		private static readonly HttpClient httpClient = new();
 
-		public async Task Handle(ReactionReceivedNotification notification, CancellationToken cancellationToken)
+        public ReactionReceivedHandler()
+        {
+			
+        }
+
+        public async Task Handle(ReactionReceivedNotification notification, CancellationToken cancellationToken)
 		{
 			var reaction = notification.Reaction;
 			var cachedMessage = notification.Message;

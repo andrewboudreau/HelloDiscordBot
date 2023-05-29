@@ -4,18 +4,25 @@ namespace DiscordBotHost
 {
 	public class MessageReceivedHandler : INotificationHandler<MessageReceivedNotification>
 	{
-		public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
+		private readonly Func<Guid> factory;
+
+		public MessageReceivedHandler(Func<Guid> factory)
+        {
+			this.factory = factory;
+		}
+
+        public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
 		{
-			Console.WriteLine($"MediatR works! (Received a message by {notification.Message.Author.Username})");
+			var task = notification.Message.Content switch
+			{
+				"ping" => notification.Message.Channel.SendMessageAsync($"pong to {notification.Message.Author.Username}"),
+				"test" => notification.Message.Channel.SendMessageAsync($"Yeah {notification.Message.Author.Username}, I get it! You're testing!"),
+				"echo" => notification.Message.Channel.SendMessageAsync(notification.Message.Content[4..]),
+				"guid" => notification.Message.Channel.SendMessageAsync($"Your GUID is \r\n`{factory()}`\r\n`{factory()}`"),
+				_ => Task.CompletedTask
+			};
 
-			if (notification.Message.Content == "ping")
-				await notification.Message.Channel.SendMessageAsync($"pong to {notification.Message.Author.Username}");
-
-			else if (notification.Message.Content == "test")
-				await notification.Message.Channel.SendMessageAsync($"Yeah {notification.Message.Author.Username}, I get it! You're testing!");
-
-			else if (notification.Message.Content.StartsWith("echo"))
-				await notification.Message.Channel.SendMessageAsync(notification.Message.Content[4..]);
+			await task;
 		}
 	}
 }

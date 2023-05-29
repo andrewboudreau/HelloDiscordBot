@@ -28,7 +28,7 @@ public class Bot
 
 		var openAiClient = new OpenAIClient(
 			new OpenAIAuthentication(
-				Configuration["OPENAI_API_KEY"], 
+				Configuration["OPENAI_API_KEY"],
 				Configuration["OPENAI_ORGANIZATION_ID"]));
 
 		return new ServiceCollection()
@@ -43,6 +43,11 @@ public class Bot
 			}))
 			.AddSingleton<DiscordEventListener>()
 			.AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()))
+			.AddScoped(sp =>
+			{
+				var guid = Guid.NewGuid();
+				return new Func<Guid>(() => guid);
+			})
 			.BuildServiceProvider();
 	}
 
