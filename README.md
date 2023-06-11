@@ -12,3 +12,7 @@ Add your bot token to the appsettings.json file.
 An icon was included using mid journey.
 
 <img src="images/discord-bot-icon.png" width="400" />
+
+
+# References
+[WatchTower Credential helpers](https://containrrr.dev/watchtower/private-registries/#credential_helpers)

@@ -1,98 +1,86 @@
-﻿using Discord;
-using Discord.Interactions;
-using Discord.WebSocket;
+﻿
 
-using MediatR;
+Log.Logger = new LoggerConfiguration()
+	.MinimumLevel.Information()
+	.Enrich.FromLogContext()
+	.WriteTo.Console()
+	.CreateLogger();
 
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+IConfiguration config = new ConfigurationBuilder()
+	.AddJsonFile("appsettings.json", false, true)
+	.AddJsonFile("appsettings.secret.json", true, true)
+	.AddEnvironmentVariables()
+	.Build();
 
-using OpenAI;
-
-using Serilog;
-using Serilog.Events;
-
-namespace DiscordBotHost;
-
-public class Bot
-{
-	private static IConfigurationRoot Configuration = default!;
-
-	private static ServiceProvider ConfigureServices()
+var services = new ServiceCollection()
+	.AddSingleton(config)
+	.AddSingleton(new OpenAIClient(new(config["OPENAI_API_KEY"], config["OPENAI_ORGANIZATION_ID"])))
+	.AddSingleton(sp =>
 	{
-		Configuration = new ConfigurationBuilder()
-			.AddJsonFile("appsettings.json", false, true)
-			.AddJsonFile("appsettings.secret.json", true, true)
-			.AddEnvironmentVariables()
-			.Build();
-
-		var openAiClient = new OpenAIClient(
-			new OpenAIAuthentication(
-				Configuration["OPENAI_API_KEY"],
-				Configuration["OPENAI_ORGANIZATION_ID"]));
-
-		return new ServiceCollection()
-			.AddSingleton<IConfiguration>(Configuration)
-			.AddMediatR(x => x.RegisterServicesFromAssemblyContaining<Bot>())
-			.AddSingleton(new DiscordSocketClient(new DiscordSocketConfig
-			{
-				AlwaysDownloadUsers = true,
-				MessageCacheSize = 100,
-				GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent,
-				LogLevel = LogSeverity.Info
-			}))
-			.AddSingleton<DiscordEventListener>()
-			.AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()))
-			.AddScoped(sp =>
-			{
-				var guid = Guid.NewGuid();
-				return new Func<Guid>(() => guid);
-			})
-			.BuildServiceProvider();
-	}
-
-	public static async Task Main()
-	{
-		await new Bot().RunAsync();
-	}
-
-	private async Task RunAsync()
-	{
-		Log.Logger = new LoggerConfiguration()
-			.MinimumLevel.Verbose()
-			.Enrich.FromLogContext()
-			.WriteTo.Console()
-			.CreateLogger();
-
-		await using var services = ConfigureServices();
-
-		var client = services.GetRequiredService<DiscordSocketClient>();
-		client.Log += LogAsync;
-
-		var listener = services.GetRequiredService<DiscordEventListener>();
-		await listener.StartAsync();
-
-		await client.LoginAsync(TokenType.Bot, Configuration["DISCORD_TOKEN"]);
-		await client.StartAsync();
-
-		await Task.Delay(Timeout.Infinite);
-	}
-
-	private static Task LogAsync(LogMessage message)
-	{
-		var severity = message.Severity switch
+		DiscordSocketClient client = new(new()
 		{
-			LogSeverity.Critical => LogEventLevel.Fatal,
-			LogSeverity.Error => LogEventLevel.Error,
-			LogSeverity.Warning => LogEventLevel.Warning,
-			LogSeverity.Info => LogEventLevel.Information,
-			LogSeverity.Verbose => LogEventLevel.Verbose,
-			LogSeverity.Debug => LogEventLevel.Debug,
-			_ => LogEventLevel.Information
-		};
+			AlwaysDownloadUsers = true,
+			MessageCacheSize = 100,
+			GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent,
+			LogLevel = LogSeverity.Info
+		});
 
-		Log.Write(severity, message.Exception, "[{Source}] {Message}", message.Source, message.Message);
+		return client;
+	})
+	.AddSingleton<DiscordEventListener>()
+	.AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()))
+	.AddScoped(sp =>
+	{
+		var guid = Guid.NewGuid();
+		return new Func<Guid>(() => guid);
+	})
+	.AddSingleton(_ => new QueueClient(config["AZURE_STORAGE"], "shares"))
+	.AddSingleton<AndroidShareQueueListener>()
+	.BuildServiceProvider();
 
-		return Task.CompletedTask;
+var cts = new CancellationTokenSource();
+Console.CancelKeyPress += (sender, e) =>
+{
+	Log.Information("Ctrl+C pressed, shutting down.");
+	cts.Cancel();
+	e.Cancel = true; // Prevent the process from terminating immediately
+};
+
+DiscordEventListener? discordListener = default;
+try
+{
+	discordListener = services.GetRequiredService<DiscordEventListener>();
+	await discordListener.StartAsync(config["DISCORD_TOKEN"] ??
+		throw new InvalidOperationException("DISCORD_TOKEN is a required configuration."));
+
+	var storageQueueListener = services.GetRequiredService<AndroidShareQueueListener>();
+	await storageQueueListener.StartAsync(cts.Token);
+
+	Log.Information(" ------------------------------");
+	Log.Information(" --   Press Ctrl+C to stop   --");
+	Log.Information(" ------------------------------");
+	await Task.Delay(Timeout.Infinite, cts.Token);
+}
+catch (TaskCanceledException)
+{
+	Log.Information("Cancellation handled.");
+}
+catch (Exception ex)
+{
+	Log.Fatal(ex, "There was a fatal error.");
+	throw;
+}
+finally
+{
+	if (discordListener is not null)
+	{
+		await discordListener.StopAsync();
 	}
+
+	Log.Debug("Services disposing asynchronously.");
+	await services.DisposeAsync();
+	Log.Debug("Services disposed.");
+
+	Log.Information("Shutdown complete.");
+	Log.CloseAndFlush();
 }

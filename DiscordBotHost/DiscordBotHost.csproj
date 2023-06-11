@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Storage.Queues" Version="12.15.0-beta.1" />
     <PackageReference Include="Discord.Net.Commands" Version="3.10.0" />
     <PackageReference Include="Discord.Net.Interactions" Version="3.10.0" />
     <PackageReference Include="Discord.Net.WebSocket" Version="3.10.0" />

@@ -5,6 +5,8 @@ using MediatR;
 
 using Microsoft.Extensions.DependencyInjection;
 
+using Serilog;
+
 namespace DiscordBotHost;
 
 /// <summary>
@@ -12,47 +14,82 @@ namespace DiscordBotHost;
 /// </summary>
 public class DiscordEventListener
 {
-	private readonly CancellationToken cancellationToken;
-
 	private readonly DiscordSocketClient client;
 	private readonly IServiceScopeFactory serviceScopeFactory;
+	private readonly CancellationTokenSource cts;
 
 	public DiscordEventListener(DiscordSocketClient client, IServiceScopeFactory serviceScopeFactory)
 	{
 		this.client = client;
 		this.serviceScopeFactory = serviceScopeFactory;
-		cancellationToken = new CancellationTokenSource().Token;
+		cts = new CancellationTokenSource();
 	}
 
-	public Task StartAsync()
+	public async Task StartAsync(string discordToken)
 	{
+		Log.Information("DiscordEventListener starting.");
+
+		Log.Debug("DiscordEventListener SocketClient Login starting.");
+		await client.LoginAsync(TokenType.Bot, discordToken);
+		Log.Debug("DiscordEventListener SocketClient Login completed.");
+
+		Log.Debug("DiscordEventListener SocketClient starting.");
+		await client.StartAsync();
+		Log.Debug("DiscordEventListener SocketClient started.");
+
+
+		Log.Debug("DiscordEventListener binding event handlers starting.");
 		client.Ready += OnReadyAsync;
 		client.MessageReceived += OnMessageReceivedAsync;
 		client.ReactionAdded += HandleReactionAdded;
+		Log.Debug("DiscordEventListener binding event handlers completed.");
+		Log.Debug("DiscordEventListener starting completed.");
+	}
 
-		return Task.CompletedTask;
+	public async Task StopAsync()
+	{
+		Log.Information("DiscordEventListener stopping.");
+		Log.Debug("DiscordEventListener cancellation token cancelling.");
+		cts.Cancel();
+		Log.Debug("DiscordEventListener cancellation token cancelled.");
+
+		Log.Debug("DiscordEventListener SocketClient Logout starting.");
+		await client.LogoutAsync();
+		Log.Debug("DiscordEventListener SocketClient Logout completed.");
+
+		Log.Debug("DiscordEventListener SocketClient stopping.");
+		await client.StopAsync();
+		Log.Debug("DiscordEventListener SocketClient stopped.");
+
+		Log.Debug("DiscordEventListener removing event handlers starting.");
+		client.Ready -= OnReadyAsync;
+		client.MessageReceived -= OnMessageReceivedAsync;
+		client.ReactionAdded -= HandleReactionAdded;
+		Log.Debug("DiscordEventListener removing event handlers completed.");
+
+		Log.Information("DiscordEventListener stopped.");
 	}
 
 	private async Task HandleReactionAdded(Cacheable<IUserMessage, ulong> cachedMessage, Cacheable<IMessageChannel, ulong> cachedChannel, SocketReaction reaction)
 	{
-		var requestAborted = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-		using var scope = serviceScopeFactory.CreateScope();
+		await using var scope = serviceScopeFactory.CreateAsyncScope();
 		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-		await mediator.Publish(new ReactionReceivedNotification(cachedMessage, cachedChannel, reaction, client), requestAborted.Token);
+		await mediator.Publish(new ReactionReceivedNotification(cachedMessage, cachedChannel, reaction, client), cts.Token);
 	}
 
 	private async Task OnMessageReceivedAsync(SocketMessage arg)
 	{
-		var requestAborted = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-		using var scope = serviceScopeFactory.CreateScope();
+		await using var scope = serviceScopeFactory.CreateAsyncScope();
 		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-		await mediator.Publish(new MessageReceivedNotification(arg, client), requestAborted.Token);
+		await mediator.Publish(new MessageReceivedNotification(arg, client), cts.Token);
 	}
 
 	private async Task OnReadyAsync()
 	{
-		using var scope = serviceScopeFactory.CreateScope();
+		Log.Information("Bot is ready.");
+
+		await using var scope = serviceScopeFactory.CreateAsyncScope();
 		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-		await mediator.Publish(ReadyNotification.Default, cancellationToken);
+		await mediator.Publish(ReadyNotification.Default, cts.Token);
 	}
 }

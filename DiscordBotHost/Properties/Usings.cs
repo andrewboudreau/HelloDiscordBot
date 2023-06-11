@@ -1,0 +1,9 @@
+﻿global using Azure.Storage.Queues;
+global using Discord;
+global using Discord.Interactions;
+global using Discord.WebSocket;
+global using DiscordBotHost;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+global using OpenAI;
+global using Serilog;
