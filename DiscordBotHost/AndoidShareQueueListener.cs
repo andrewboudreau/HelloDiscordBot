@@ -1,24 +1,18 @@
-﻿using Azure.Storage.Queues;
-
-using Discord;
-using Discord.WebSocket;
+﻿using MediatR;
 
 using Microsoft.Extensions.Hosting;
-
-using Serilog;
 
 namespace DiscordBotHost
 {
 	public class AndroidShareQueueListener : BackgroundService
 	{
-		private static readonly ulong channelToDumpShares = 1057059014950780938;
 		private readonly QueueClient queueClient;
-		private readonly DiscordSocketClient discordClient;
+		private readonly IServiceScopeFactory serviceScopeFactory;
 
-		public AndroidShareQueueListener(QueueClient queueClient, DiscordSocketClient discordClient)
+		public AndroidShareQueueListener(QueueClient queueClient, IServiceScopeFactory serviceScopeFactory)
 		{
 			this.queueClient = queueClient;
-			this.discordClient = discordClient;
+			this.serviceScopeFactory = serviceScopeFactory;
 		}
 
 		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -36,15 +30,18 @@ namespace DiscordBotHost
 				var messages = await queueClient.ReceiveMessagesAsync(32, cancellationToken: CancellationToken.None);
 				foreach (var message in messages.Value)
 				{
-					// Process the message
-					if (await discordClient.GetChannelAsync(channelToDumpShares) is not IMessageChannel targetChannel)
-					{
-						Log.Error("The target channel was null when attempting to share.");
-						return;
-					}
+					await using var scope = serviceScopeFactory.CreateAsyncScope();
+					var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-					await targetChannel.SendMessageAsync(message.Body.ToString());
-					await queueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt, CancellationToken.None);
+					try
+					{
+						await mediator.Publish(new SharedLinkReceivedNotification(message.Body.ToString()), stoppingToken);
+						await queueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt, CancellationToken.None);
+					}
+					catch (Exception)
+					{
+						Log.Error("Failed to publish SharedLinkReceivedNotification internally.");
+					}
 				}
 
 				// Consider adding a delay here if the queue is often empty to avoid busy waiting
@@ -55,14 +52,12 @@ namespace DiscordBotHost
 
 	public static class CustomDelayProvider
 	{
-		private static readonly TimeSpan TenSeconds = TimeSpan.FromSeconds(2.5);
-		private static readonly TimeSpan ThirtyMinutes = TimeSpan.FromMinutes(5);
+		private static readonly TimeSpan TwoSeconds = TimeSpan.FromSeconds(2);
+		private static readonly TimeSpan FiveMinutes = TimeSpan.FromMinutes(5);
 
 		public static TimeSpan GetDelay()
 		{
-			var currentTime = DateTime.Now;
-			bool isOffHours = currentTime.Hour >= 2 && currentTime.Hour < 7;
-			return isOffHours ? ThirtyMinutes : TenSeconds;
+			return TwoSeconds;
 		}
 	}
 

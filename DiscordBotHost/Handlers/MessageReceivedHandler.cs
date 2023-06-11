@@ -13,7 +13,7 @@ namespace DiscordBotHost
 
         public async Task Handle(MessageReceivedNotification notification, CancellationToken cancellationToken)
 		{
-			var task = notification.Message.Content switch
+			var task = notification.Message.Content.Split(' ')[0] switch
 			{
 				"ping" => notification.Message.Channel.SendMessageAsync($"pong to {notification.Message.Author.Username}"),
 				"test" => notification.Message.Channel.SendMessageAsync($"Yeah {notification.Message.Author.Username}, I get it! You're testing!"),

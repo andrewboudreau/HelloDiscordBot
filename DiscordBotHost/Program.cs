@@ -36,6 +36,7 @@ var services = new ServiceCollection()
 	})
 	.AddSingleton(_ => new QueueClient(config["AZURE_STORAGE"], "shares"))
 	.AddSingleton<AndroidShareQueueListener>()
+	.AddMediatR(x => x.RegisterServicesFromAssemblyContaining<Program>())
 	.BuildServiceProvider();
 
 var cts = new CancellationTokenSource();

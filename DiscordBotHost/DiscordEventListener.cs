@@ -1,11 +1,4 @@
-using Discord;
-using Discord.WebSocket;
-
 using MediatR;
-
-using Microsoft.Extensions.DependencyInjection;
-
-using Serilog;
 
 namespace DiscordBotHost;
 
