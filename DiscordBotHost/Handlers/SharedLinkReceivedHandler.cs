@@ -8,8 +8,8 @@ namespace DiscordBotHost
 		private static readonly ulong BotTesting = 1057059014950780938;
 		private static readonly ulong SharedLinksChannel = BotTesting;
 #else
-		private static readonly ulong CarolynAndrewChat = 1109687642171383820;
-		private static readonly ulong SharedLinksChannel = CarolynAndrewChat;
+		private static readonly ulong SharedLinks = 1119660959888318486;
+		private static readonly ulong SharedLinksChannel = SharedLinks;
 #endif
 
 		private readonly DiscordSocketClient discordClient;
