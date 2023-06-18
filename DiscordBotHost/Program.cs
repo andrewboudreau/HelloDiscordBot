@@ -1,5 +1,6 @@
 ﻿
 using DiscordBotHost.EntityFramework;
+
 using Microsoft.EntityFrameworkCore;
 
 Log.Logger = new LoggerConfiguration()
@@ -68,7 +69,7 @@ try
 		throw new InvalidOperationException("DISCORD_TOKEN is a required configuration."));
 
 	var storageQueueListener = services.GetRequiredService<AndroidShareQueueListener>();
-	await storageQueueListener.StartAsync(cts.Token);
+	//await storageQueueListener.StartAsync(cts.Token);
 
 	Log.Information(" ------------------------------");
 	Log.Information(" --   Press Ctrl+C to stop   --");
@@ -97,4 +98,9 @@ finally
 
 	Log.Information("Shutdown complete.");
 	Log.CloseAndFlush();
+}
+
+public static class Globals
+{
+	public const ulong DiscordServerId = 1057034458152304790;
 }

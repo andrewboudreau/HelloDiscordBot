@@ -1,4 +1,5 @@
 using DiscordBotHost.Commands.LinksChannel;
+
 using MediatR;
 
 namespace DiscordBotHost;
@@ -94,10 +95,11 @@ public class DiscordEventListener
 		Log.Information("Bot is ready.");
 
 		Log.Debug("DiscordEventListener SlashCommands registering.");
+
 		foreach (var commandProperties in SharedLinksCommandDefinitions.SetLinksChannelCommands())
 		{
 			// https://github.com/discord-net/Discord.Net/issues/2221
-			await client.Rest.CreateGlobalCommand(commandProperties);
+			await client.Rest.CreateGuildCommand(commandProperties, Globals.DiscordServerId);
 		}
 		Log.Debug("DiscordEventListener SlashCommands registered.");
 
