@@ -1,4 +1,6 @@
 ﻿
+using DiscordBotHost.EntityFramework;
+using Microsoft.EntityFrameworkCore;
 
 Log.Logger = new LoggerConfiguration()
 	.MinimumLevel.Information()
@@ -37,7 +39,18 @@ var services = new ServiceCollection()
 	.AddSingleton(_ => new QueueClient(config["AZURE_STORAGE"], "shares"))
 	.AddSingleton<AndroidShareQueueListener>()
 	.AddMediatR(x => x.RegisterServicesFromAssemblyContaining<Program>())
+	.AddDbContext<DiscordBotDbContext>(options =>
+	{
+		options.UseSqlServer(config["MSSQL_CONNECTIONSTRING"]);
+	})
 	.BuildServiceProvider();
+
+Log.Information("Migration of database started.");
+using (var scope = services.CreateScope())
+{
+	await scope.ServiceProvider.GetRequiredService<DiscordBotDbContext>().Database.MigrateAsync();
+}
+Log.Information("Migration finished.");
 
 var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (sender, e) =>

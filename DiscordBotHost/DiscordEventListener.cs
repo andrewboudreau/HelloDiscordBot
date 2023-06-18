@@ -1,3 +1,4 @@
+using DiscordBotHost.Commands.LinksChannel;
 using MediatR;
 
 namespace DiscordBotHost;
@@ -30,13 +31,24 @@ public class DiscordEventListener
 		await client.StartAsync();
 		Log.Debug("DiscordEventListener SocketClient started.");
 
-
 		Log.Debug("DiscordEventListener binding event handlers starting.");
 		client.Ready += OnReadyAsync;
 		client.MessageReceived += OnMessageReceivedAsync;
 		client.ReactionAdded += HandleReactionAdded;
+		client.InteractionCreated += HandleInteractionCreated;
+
 		Log.Debug("DiscordEventListener binding event handlers completed.");
 		Log.Debug("DiscordEventListener starting completed.");
+	}
+
+	private async Task HandleInteractionCreated(SocketInteraction arg)
+	{
+		if (arg is SocketSlashCommand command) // Make sure it's a slash command
+		{
+			await using var scope = serviceScopeFactory.CreateAsyncScope();
+			var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+			await mediator.Publish(new SlashCommandNotification(command), cts.Token);
+		}
 	}
 
 	public async Task StopAsync()
@@ -80,6 +92,14 @@ public class DiscordEventListener
 	private async Task OnReadyAsync()
 	{
 		Log.Information("Bot is ready.");
+
+		Log.Debug("DiscordEventListener SlashCommands registering.");
+		foreach (var commandProperties in SharedLinksCommandDefinitions.SetLinksChannelCommands())
+		{
+			// https://github.com/discord-net/Discord.Net/issues/2221
+			await client.Rest.CreateGlobalCommand(commandProperties);
+		}
+		Log.Debug("DiscordEventListener SlashCommands registered.");
 
 		await using var scope = serviceScopeFactory.CreateAsyncScope();
 		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
