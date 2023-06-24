@@ -70,7 +70,7 @@ namespace DiscordBotHost.Commands.LinksChannel
 			user.SetLinksChannelId(channel.Id);
 
 			await dbContext.SaveChangesAsync(CancellationToken.None);
-			await command.RespondAsync($"Your links channel is not set to <#{channel.Id}>", ephemeral: true);
+			await command.RespondAsync($"Your links channel is set to <#{channel.Id}>", ephemeral: true);
 		}
 	}
 }
