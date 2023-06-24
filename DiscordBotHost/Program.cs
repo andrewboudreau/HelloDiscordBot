@@ -1,4 +1,5 @@
 ﻿
+using DiscordBotHost.Commands.LinksChannel;
 using DiscordBotHost.EntityFramework;
 
 using Microsoft.EntityFrameworkCore;
@@ -39,6 +40,7 @@ var services = new ServiceCollection()
 	})
 	.AddSingleton(_ => new QueueClient(config["AZURE_STORAGE"], "shares"))
 	.AddSingleton<AndroidShareQueueListener>()
+	.AddScoped<SharedLinksService>()
 	.AddMediatR(x => x.RegisterServicesFromAssemblyContaining<Program>())
 	.AddDbContext<DiscordBotDbContext>(options =>
 	{
@@ -46,35 +48,57 @@ var services = new ServiceCollection()
 	})
 	.BuildServiceProvider();
 
-Log.Information("Migration of database started.");
+if (EF.IsDesignTime)
+{
+	Log.Information("EF DesignTime, exiting host.");
+	await services.DisposeAsync();
+	return;
+}
+
 using (var scope = services.CreateScope())
 {
+	Log.Information("Migration of database started.");
 	await scope.ServiceProvider.GetRequiredService<DiscordBotDbContext>().Database.MigrateAsync();
+	Log.Information("Migration finished.");
 }
-Log.Information("Migration finished.");
 
-var cts = new CancellationTokenSource();
+// Services that require cleanup.
+DiscordEventListener? discordListener = default;
+AndroidShareQueueListener? storageQueueListener = default;
+
+// Shutdown monitor
+using var shutdown = new CancellationTokenSource();
 Console.CancelKeyPress += (sender, e) =>
 {
 	Log.Information("Ctrl+C pressed, shutting down.");
-	cts.Cancel();
-	e.Cancel = true; // Prevent the process from terminating immediately
+	shutdown.Cancel();
+	e.Cancel = true;
 };
 
-DiscordEventListener? discordListener = default;
+// Preform Database Migrations
+using (var scope = services.CreateScope())
+{
+	Log.Information("Migration of database started.");
+	await scope.ServiceProvider.GetRequiredService<DiscordBotDbContext>().Database.MigrateAsync();
+	Log.Information("Migration finished.");
+}
+
 try
 {
+	// Start the Discord bot
 	discordListener = services.GetRequiredService<DiscordEventListener>();
 	await discordListener.StartAsync(config["DISCORD_TOKEN"] ??
 		throw new InvalidOperationException("DISCORD_TOKEN is a required configuration."));
 
-	var storageQueueListener = services.GetRequiredService<AndroidShareQueueListener>();
-	//await storageQueueListener.StartAsync(cts.Token);
+	// Message bus
+	storageQueueListener = services.GetRequiredService<AndroidShareQueueListener>();
+	await storageQueueListener.StartAsync(shutdown.Token);
 
+	// Instructions
 	Log.Information(" ------------------------------");
 	Log.Information(" --   Press Ctrl+C to stop   --");
 	Log.Information(" ------------------------------");
-	await Task.Delay(Timeout.Infinite, cts.Token);
+	await Task.Delay(Timeout.Infinite, shutdown.Token);
 }
 catch (TaskCanceledException)
 {
@@ -92,15 +116,25 @@ finally
 		await discordListener.StopAsync();
 	}
 
+	if (storageQueueListener is not null)
+	{
+		await storageQueueListener.StopAsync(CancellationToken.None);
+	}
+
 	Log.Debug("Services disposing asynchronously.");
 	await services.DisposeAsync();
 	Log.Debug("Services disposed.");
-
 	Log.Information("Shutdown complete.");
+
 	Log.CloseAndFlush();
 }
+
 
 public static class Globals
 {
 	public const ulong DiscordServerId = 1057034458152304790;
+	public const ulong DefaultGuildId = DiscordServerId;
+
+	public const ulong DefaultBotLogChannelId = 1057059014950780938;
+	public const ulong DefaultChannelId = DefaultBotLogChannelId;
 }

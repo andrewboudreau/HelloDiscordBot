@@ -1,5 +1,8 @@
 ﻿using DiscordBotHost.EntityFramework;
 
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
+
 namespace DiscordBotHost.Commands.LinksChannel
 {
 	public class SharedLinksService
@@ -12,7 +15,7 @@ namespace DiscordBotHost.Commands.LinksChannel
 			this.client = client;
 			this.dbContext = dbContext;
 
-			this.client.InteractionCreated += HandleCommandAsync;
+			//this.client.InteractionCreated += HandleCommandAsync;
 		}
 
 		private async Task HandleCommandAsync(SocketInteraction arg)
@@ -32,34 +35,42 @@ namespace DiscordBotHost.Commands.LinksChannel
 			}
 		}
 
-		private async Task HandleSetLinksChannelCommandAsync(SocketSlashCommand command)
+		private async Task HandleListLinksChannelCommandAsync(SocketSlashCommand command)
 		{
-			// Get the channel
-			var channelOption = command.Data.Options.FirstOrDefault(o => o.Name == "channel");
-			if (channelOption == null)
+			var user = await dbContext.Users.FirstOrDefaultAsync(x => x.DiscordId == command.User.Id, CancellationToken.None);
+
+			if (user is null)
+			{
+				await command.RespondAsync($"User {command.User.Id} was not found.");
+				return;
+			}
+
+			await command.RespondAsync($"User <@{command.User.Id}> has links channel set to <#{user.LinksChannelId}>.");
+		}
+
+		public async Task HandleSetLinksChannelCommandAsync(SocketSlashCommand command)
+		{
+			if (command.Data.Options.FirstOrDefault(o => o.Name == "channel")?.Value is not SocketGuildChannel channel)
 			{
 				await command.RespondAsync("You didn't specify a channel.", ephemeral: true);
 				return;
 			}
 
-			var channel = channelOption.Value as SocketGuildChannel;
+			var user = await dbContext.Users.FirstOrDefaultAsync(x => x.DiscordId == command.User.Id, CancellationToken.None);
+			if (user == null)
+			{
+				user = dbContext.Add(
+					new DiscordUser(0,
+						command.User.Username,
+						command.User.Id,
+						firebaseId: "",
+						channel.Id)).Entity;
+			}
 
-			// Save it to your repository here
-			// ... use _dbContext to access your database
+			user.SetLinksChannelId(channel.Id);
 
-			// Let the user know it worked
-			await command.RespondAsync($"Successfully set {channel.Name} as the links channel.");
+			await dbContext.SaveChangesAsync(CancellationToken.None);
+			await command.RespondAsync($"Your links channel is not set to <#{channel.Id}>", ephemeral: true);
 		}
-
-		private async Task HandleListLinksChannelCommandAsync(SocketSlashCommand command)
-		{
-			// Retrieve the links channel from your repository here
-			// ... use _dbContext to access your database
-
-			// Let the user know which channel is the links channel
-			// ... your response logic goes here
-		}
-
-		// Your SetLinksChannelCommands method goes here
 	}
 }

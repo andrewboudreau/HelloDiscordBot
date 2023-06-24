@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DiscordBotHost.EntityFramework.Migrations
 {
     [DbContext(typeof(DiscordBotDbContext))]
-    [Migration("20230618170200_InitialCreate")]
+    [Migration("20230624160726_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

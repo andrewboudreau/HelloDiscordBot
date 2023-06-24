@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace DiscordBotHost.EntityFramework
 {
-	public class DiscordBotDbContextFactory : IDesignTimeDbContextFactory<DiscordBotDbContext>
+	public class DiscordBotDesignTimeDbContextFactory : IDesignTimeDbContextFactory<DiscordBotDbContext>
 	{
 		public DiscordBotDbContext CreateDbContext(string[] args)
 		{
