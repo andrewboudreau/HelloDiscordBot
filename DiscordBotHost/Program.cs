@@ -76,14 +76,6 @@ Console.CancelKeyPress += (sender, e) =>
 	e.Cancel = true;
 };
 
-// Preform Database Migrations
-using (var scope = services.CreateScope())
-{
-	Log.Information("Migration of database started.");
-	await scope.ServiceProvider.GetRequiredService<DiscordBotDbContext>().Database.MigrateAsync();
-	Log.Information("Migration finished.");
-}
-
 try
 {
 	// Start the Discord bot
