@@ -93,14 +93,14 @@ public class DiscordEventListener
 	private async Task OnReadyAsync()
 	{
 		Log.Information("Bot is ready.");
-
 		Log.Debug("DiscordEventListener SlashCommands registering.");
 
+		// Register commands `OnReady`, not `OnStart`. https://github.com/discord-net/Discord.Net/issues/2221
 		foreach (var commandProperties in SharedLinksCommandDefinitions.SetLinksChannelCommands())
 		{
-			// https://github.com/discord-net/Discord.Net/issues/2221
 			await client.Rest.CreateGuildCommand(commandProperties, Globals.DiscordServerId);
 		}
+
 		Log.Debug("DiscordEventListener SlashCommands registered.");
 
 		await using var scope = serviceScopeFactory.CreateAsyncScope();

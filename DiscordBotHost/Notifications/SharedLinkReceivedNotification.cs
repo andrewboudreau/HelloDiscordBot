@@ -37,8 +37,6 @@ namespace DiscordBotHost
 
 		public async Task Handle(SharedLinkReceivedNotification notification, CancellationToken cancellationToken)
 		{
-
-
 			if (await discordClient.GetChannelAsync(SharedLinksChannel) is not IMessageChannel targetChannel)
 			{
 				Log.Error("The target channel was null when attempting to share.");

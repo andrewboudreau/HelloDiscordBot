@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DiscordBotHost.Features.Auditions;
+using DiscordBotHost.Features.ContentMonitor;
+
+using Microsoft.EntityFrameworkCore;
 
 namespace DiscordBotHost.EntityFramework
 {
@@ -14,34 +17,20 @@ namespace DiscordBotHost.EntityFramework
 		}
 
 		public DbSet<DiscordUser> Users { get; set; }
-	}
 
-	public class DiscordUser
-	{
-		public static DiscordUser Empty { get; } 
-			= new DiscordUser(0, "", 0, "", 0);
+		public DbSet<Opportunity> Opportunities { get; set; }
 
-		public DiscordUser(int id, string name, ulong discordId, string firebaseId, ulong linksChannelId)
+		public DbSet<UrlContentMonitorRequest> ContentMonitorRequests { get; set; }
+		
+		public DbSet<UrlContentInspection> ContentInspections { get; set; }
+
+		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
-			Id = id;
-			Name = name;
-			DiscordId = discordId;
-			FirebaseId = firebaseId;
-			LinksChannelId = linksChannelId;
-		}
+			base.OnModelCreating(modelBuilder);
 
-		public int Id { get; private set; }
-		public string Name { get; private set; }
-		public ulong DiscordId { get; private set; }
-		public string FirebaseId { get; private set; }
-		public ulong LinksChannelId { get; private set; }
-
-		public static DiscordUser Create(string name, ulong discordId, ulong linksChannel = Globals.DefaultChannelId)
-			=> new(0, name, discordId, "", linksChannel);
-
-		internal void SetLinksChannelId(ulong channelId)
-		{
-			LinksChannelId = channelId;
+			modelBuilder.Entity<Opportunity>().HasKey(x => x.OpportunityId);
+			modelBuilder.Entity<UrlContentMonitorRequest>().HasKey(x => x.UrlContentMonitorRequestId);
+			modelBuilder.Entity<UrlContentInspection>().HasKey(x => x.UrlContentInspectionId);
 		}
 	}
 }

@@ -54,6 +54,29 @@ namespace DiscordBotHost
 				await dbContext.SaveChangesAsync(CancellationToken.None);
 				await notification.Message.RespondAsync($"Your links channel is not set to <#{channel.Id}>", ephemeral: true);
 			}
+
+			if (notification.CommandName.ToLower() == "monitor-url")
+			{
+				if (notification.Message.Data.Options.FirstOrDefault(o => o.Name == "url")?.Value is not string url)
+				{
+					await notification.Message.RespondAsync("You didn't specify a url.", ephemeral: true);
+					return;
+				}
+
+				var user = await dbContext.Users.FirstOrDefaultAsync(x => x.DiscordId == notification.Message.User.Id, CancellationToken.None);
+				if (user == null)
+				{
+					user = dbContext.Add(
+						new DiscordUser(0,
+							notification.Message.User.Username,
+							notification.Message.User.Id,
+							firebaseId: "",
+							Globals.DefaultChannelId)).Entity;
+				}
+
+				await dbContext.SaveChangesAsync(CancellationToken.None);
+				await notification.Message.RespondAsync($"We submitted a url for review '{url}'", ephemeral: true);
+			}
 		}
 	}
 }

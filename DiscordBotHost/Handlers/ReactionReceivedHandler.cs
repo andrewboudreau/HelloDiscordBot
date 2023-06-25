@@ -30,8 +30,7 @@ namespace DiscordBotHost
 		private static readonly HttpClient httpClient = new();
 
         public ReactionReceivedHandler()
-        {
-			
+        {			
         }
 
         public async Task Handle(ReactionReceivedNotification notification, CancellationToken cancellationToken)

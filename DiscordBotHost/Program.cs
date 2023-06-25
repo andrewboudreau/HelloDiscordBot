@@ -46,6 +46,7 @@ var services = new ServiceCollection()
 	{
 		options.UseSqlServer(config["MSSQL_CONNECTIONSTRING"]);
 	})
+	.AddScoped<MonitorContentService>()
 	.BuildServiceProvider();
 
 if (EF.IsDesignTime)
