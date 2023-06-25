@@ -96,10 +96,12 @@ public class DiscordEventListener
 		Log.Debug("DiscordEventListener SlashCommands registering.");
 
 		// Register commands `OnReady`, not `OnStart`. https://github.com/discord-net/Discord.Net/issues/2221
-		foreach (var commandProperties in SharedLinksCommandDefinitions.SetLinksChannelCommands())
-		{
-			await client.Rest.CreateGuildCommand(commandProperties, Globals.DiscordServerId);
-		}
+		//foreach (var commandProperties in SharedLinksCommandDefinitions.SetLinksChannelCommands())
+		//{
+		//	await client.Rest.CreateGuildCommand(commandProperties, Globals.DiscordServerId);
+		//}
+
+		await MonitorContentService.CreateGuildCommands(client);
 
 		Log.Debug("DiscordEventListener SlashCommands registered.");
 
