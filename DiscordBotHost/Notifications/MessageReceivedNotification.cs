@@ -17,11 +17,11 @@ namespace DiscordBotHost
 		public DiscordSocketClient Client { get; }
 	}
 
-	public class MessageReceivedHandler : INotificationHandler<MessageReceivedNotification>
+	public class DefaultMessageReceivedHandler : INotificationHandler<MessageReceivedNotification>
 	{
 		private readonly Func<Guid> factory;
 
-		public MessageReceivedHandler(Func<Guid> factory)
+		public DefaultMessageReceivedHandler(Func<Guid> factory)
 		{
 			this.factory = factory;
 		}

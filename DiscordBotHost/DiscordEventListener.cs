@@ -1,4 +1,4 @@
-using DiscordBotHost.Commands.LinksChannel;
+using DiscordBotHost.Notifications;
 
 using MediatR;
 
@@ -37,13 +37,14 @@ public class DiscordEventListener
 
 		client.Ready += OnReadyAsync;
 		client.MessageReceived += OnMessageReceivedAsync;
-		client.ReactionAdded += HandleReactionAdded;
-		client.InteractionCreated += HandleInteractionCreated;
+		client.ReactionAdded += OnReactionAdded;
+		client.InteractionCreated += OnInteractionCreated;
 
 		Log.Debug("DiscordEventListener binding event handlers completed.");
 		Log.Debug("DiscordEventListener starting completed.");
 
 	}
+
 	public async Task StopAsync()
 	{
 		Log.Information("DiscordEventListener stopping.");
@@ -66,44 +67,55 @@ public class DiscordEventListener
 
 		client.Ready -= OnReadyAsync;
 		client.MessageReceived -= OnMessageReceivedAsync;
-		client.ReactionAdded -= HandleReactionAdded;
+		client.ReactionAdded -= OnReactionAdded;
 
 		Log.Debug("DiscordEventListener removing event handlers completed.");
 		Log.Information("DiscordEventListener stopped.");
 	}
 
-	private async Task HandleInteractionCreated(SocketInteraction arg)
+	protected virtual async Task OnInteractionCreated(SocketInteraction arg)
 	{
-		if (arg is SocketSlashCommand command) // Make sure it's a slash command
+		if (arg is SocketSlashCommand command) 
 		{
-			await using var scope = serviceScopeFactory.CreateAsyncScope();
-			var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-			await mediator.Publish(new SlashCommandNotification(command), cts.Token);
+			await serviceScopeFactory.PublishNotification(
+				new SlashCommandNotification(command), cts);
+		}
+
+		if (arg is SocketMessageComponent component)
+		{
+			await serviceScopeFactory.PublishNotification(
+				new MessageComponentNotification(component), cts);
 		}
 	}
 
-	private async Task HandleReactionAdded(Cacheable<IUserMessage, ulong> cachedMessage, Cacheable<IMessageChannel, ulong> cachedChannel, SocketReaction reaction)
+	protected virtual async Task OnReactionAdded(Cacheable<IUserMessage, ulong> cachedMessage, Cacheable<IMessageChannel, ulong> cachedChannel, SocketReaction reaction)
 	{
-		await using var scope = serviceScopeFactory.CreateAsyncScope();
-		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-		await mediator.Publish(new ReactionReceivedNotification(cachedMessage, cachedChannel, reaction, client), cts.Token);
+		await serviceScopeFactory.PublishNotification(
+			new ReactionReceivedNotification(cachedMessage, cachedChannel, reaction, client), cts);
 	}
 
-	private async Task OnMessageReceivedAsync(SocketMessage arg)
+	protected virtual async Task OnMessageReceivedAsync(SocketMessage arg)
 	{
-		await using var scope = serviceScopeFactory.CreateAsyncScope();
-		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-		await mediator.Publish(new MessageReceivedNotification(arg, client), cts.Token);
+		await serviceScopeFactory.PublishNotification(
+			new MessageReceivedNotification(arg, client), cts);
 	}
 
-	private async Task OnReadyAsync()
+	protected virtual async Task OnReadyAsync()
 	{
-		Log.Debug("DiscordEventListener SlashCommands registering.");
-		await using var scope = serviceScopeFactory.CreateAsyncScope();
-		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-		await mediator.Publish(new ReadyNotification(client), cts.Token);
-		Log.Debug("DiscordEventListener SlashCommands registered.");
+		await serviceScopeFactory.PublishNotification(
+			new ReadyNotification(client), cts);
 
 		Log.Information("Bot is ready.");
+	}
+}
+
+public static class ServiceScopeFactoryExtensions
+{
+	public static async Task PublishNotification<T>(this IServiceScopeFactory factory, T notification, CancellationTokenSource cts)
+		where T : INotification
+	{
+		await using var scope = factory.CreateAsyncScope();
+		var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+		await mediator.Publish(notification, cts.Token);
 	}
 }

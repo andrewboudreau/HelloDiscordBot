@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DiscordBotHost.EntityFramework.Migrations
 {
     [DbContext(typeof(DiscordBotDbContext))]
-    [Migration("20230626150720_InitialCreate")]
+    [Migration("20230626174828_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -28,10 +28,7 @@ namespace DiscordBotHost.EntityFramework.Migrations
             modelBuilder.Entity("DiscordBotHost.EntityFramework.User", b =>
                 {
                     b.Property<decimal>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(20,0)");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
                     b.Property<decimal>("DiscordUserId")
                         .HasColumnType("decimal(20,0)");
@@ -95,13 +92,13 @@ namespace DiscordBotHost.EntityFramework.Migrations
                     b.ToTable("Opportunities");
                 });
 
-            modelBuilder.Entity("DiscordBotHost.Features.ContentMonitor.UrlContentInspection", b =>
+            modelBuilder.Entity("DiscordBotHost.Features.ContentMonitor.ContentInspection", b =>
                 {
-                    b.Property<int>("UrlContentInspectionId")
+                    b.Property<int>("ContentInspectionId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UrlContentInspectionId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ContentInspectionId"));
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
@@ -113,26 +110,26 @@ namespace DiscordBotHost.EntityFramework.Migrations
                     b.Property<string>("Error")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("MonitorContentRequestId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("ThresholdExceeded")
                         .HasColumnType("bit");
 
-                    b.Property<int>("UrlContentMonitorRequestId")
-                        .HasColumnType("int");
+                    b.HasKey("ContentInspectionId");
 
-                    b.HasKey("UrlContentInspectionId");
-
-                    b.HasIndex("UrlContentMonitorRequestId");
+                    b.HasIndex("MonitorContentRequestId");
 
                     b.ToTable("ContentInspections");
                 });
 
-            modelBuilder.Entity("DiscordBotHost.Features.ContentMonitor.UrlContentMonitorRequest", b =>
+            modelBuilder.Entity("DiscordBotHost.Features.ContentMonitor.MonitorContentRequest", b =>
                 {
-                    b.Property<int>("UrlContentMonitorRequestId")
+                    b.Property<int>("MonitorContentRequestId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UrlContentMonitorRequestId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MonitorContentRequestId"));
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
@@ -160,20 +157,20 @@ namespace DiscordBotHost.EntityFramework.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("UrlContentMonitorRequestId");
+                    b.HasKey("MonitorContentRequestId");
 
-                    b.ToTable("ContentMonitorRequests");
+                    b.ToTable("MonitorContentRequests");
                 });
 
-            modelBuilder.Entity("DiscordBotHost.Features.ContentMonitor.UrlContentInspection", b =>
+            modelBuilder.Entity("DiscordBotHost.Features.ContentMonitor.ContentInspection", b =>
                 {
-                    b.HasOne("DiscordBotHost.Features.ContentMonitor.UrlContentMonitorRequest", "UrlContentMonitorRequest")
+                    b.HasOne("DiscordBotHost.Features.ContentMonitor.MonitorContentRequest", "MonitorContentRequest")
                         .WithMany()
-                        .HasForeignKey("UrlContentMonitorRequestId")
+                        .HasForeignKey("MonitorContentRequestId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("UrlContentMonitorRequest");
+                    b.Navigation("MonitorContentRequest");
                 });
 #pragma warning restore 612, 618
         }

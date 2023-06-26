@@ -6,24 +6,38 @@ using MediatR;
 namespace DiscordBotHost.Commands.LinksChannel
 {
 	public class SharedLinksService :
+		INotificationHandler<SharedLinkReceivedNotification>,
 		INotificationHandler<SlashCommandNotification>,
 		INotificationHandler<ReadyNotification>
 	{
 		private readonly DiscordBotDbContext dbContext;
-		private User user;
+		private readonly DiscordSocketClient discordClient;
 
-		public SharedLinksService(DiscordBotDbContext dbContext)
+		public SharedLinksService(DiscordBotDbContext dbContext, DiscordSocketClient discordClient)
 		{
 			this.dbContext = dbContext;
+			this.discordClient = discordClient;
 		}
 
 		public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
 		{
-			Log.Information("Creating guild commands for SharedLinks");
+			Log.Information("Creating guild commands for {ServiceName}", nameof(SharedLinksService));
 			foreach (var commandProperties in SharedLinksCommandDefinitions.SetLinksChannelCommands())
 			{
 				await notification.Client.Rest.CreateGuildCommand(commandProperties, Globals.DiscordServerId);
 			}
+		}
+
+		public async Task Handle(SharedLinkReceivedNotification notification, CancellationToken cancellationToken)
+		{
+			var user = dbContext.Users.First();
+			if (await discordClient.GetChannelAsync(user.LinksChannelId) is not IMessageChannel targetChannel)
+			{
+				Log.Error("The target channel was null when attempting to share.");
+				return;
+			}
+
+			await targetChannel.SendMessageAsync(notification.Message.ToString());
 		}
 
 		public async Task Handle(SlashCommandNotification notification, CancellationToken cancellationToken)
@@ -43,7 +57,7 @@ namespace DiscordBotHost.Commands.LinksChannel
 
 		private async Task ListLinksChannel(SocketSlashCommand command)
 		{
-			user = await dbContext.GetOrCreateAsync(command.User);
+			var user = await dbContext.GetOrCreateUser(command.User);
 			await command.RespondAsync($"User <@{command.User.Id}> has links channel set to <#{user.LinksChannelId}>.");
 		}
 
@@ -55,7 +69,7 @@ namespace DiscordBotHost.Commands.LinksChannel
 				return;
 			}
 
-			user = await dbContext.GetOrCreateAsync(command.User);
+			var user = await dbContext.GetOrCreateUser(command.User);
 			user.SetLinksChannelId(channel.Id);
 			await dbContext.SaveChangesAsync();
 

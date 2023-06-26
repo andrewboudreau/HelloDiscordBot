@@ -20,24 +20,27 @@ namespace DiscordBotHost.EntityFramework
 
 		public DbSet<Opportunity> Opportunities { get; set; }
 
-		public DbSet<UrlContentMonitorRequest> ContentMonitorRequests { get; set; }
+		public DbSet<MonitorContentRequest> MonitorContentRequests { get; set; }
 
-		public DbSet<UrlContentInspection> ContentInspections { get; set; }
+		public DbSet<ContentInspection> ContentInspections { get; set; }
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
 			base.OnModelCreating(modelBuilder);
 
+			modelBuilder.Entity<User>().HasKey(x => x.Id);
+			modelBuilder.Entity<User>().Property(x => x.Id).ValueGeneratedNever();
+
 			modelBuilder.Entity<Opportunity>().HasKey(x => x.OpportunityId);
 
-			modelBuilder.Entity<UrlContentMonitorRequest>().HasKey(x => x.UrlContentMonitorRequestId);
+			modelBuilder.Entity<MonitorContentRequest>().HasKey(x => x.MonitorContentRequestId);
 
-			modelBuilder.Entity<UrlContentMonitorRequest>().Property(x => x.Interval)
+			modelBuilder.Entity<MonitorContentRequest>().Property(x => x.Interval)
 				.HasConversion(
 					convertToProviderExpression: timespan => timespan.Ticks,
 					convertFromProviderExpression: ticks => TimeSpan.FromTicks(ticks));
 
-			modelBuilder.Entity<UrlContentInspection>().HasKey(x => x.UrlContentInspectionId);
+			modelBuilder.Entity<ContentInspection>().HasKey(x => x.ContentInspectionId);
 		}
 	}
 }

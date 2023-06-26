@@ -3,9 +3,9 @@
 	/// <summary>
 	/// Represents a request to monitor the content of a URL.
 	/// </summary>
-	public class UrlContentMonitorRequest
+	public class MonitorContentRequest
 	{
-		public UrlContentMonitorRequest()
+		public MonitorContentRequest()
 		{
 		}
 
@@ -14,7 +14,7 @@
 		/// <summary>
 		/// Gets or sets the identifier of the URL content monitor request.
 		/// </summary>
-		public int UrlContentMonitorRequestId { get; set; }
+		public int MonitorContentRequestId { get; set; }
 
 		/// <summary>
 		/// Gets or sets the URL to monitor.
@@ -52,6 +52,9 @@
 		/// </summary>
 		public DateTimeOffset CreatedAt { get; private set; }
 
+		/// <summary>
+		/// Gets or sets the value of the user who created the request.
+		/// </summary>
 		public ulong DiscordUserId { get; set; }
 
 		/// <summary>
@@ -59,8 +62,8 @@
 		/// </summary>
 		/// <param name="url">The URL to monitor.</param>
 		/// <param name="selectors">The CSS selectors to use. If none are provided, the entire body of the HTML will be used.</param>
-		/// <returns>A new <see cref="UrlContentMonitorRequest"/> instance.</returns>
-		public static UrlContentMonitorRequest DailyForTheNextWeek(string url, ulong discordUserId, params string[] selectors) => new()
+		/// <returns>A new <see cref="MonitorContentRequest"/> instance.</returns>
+		public static MonitorContentRequest DailyForTheNextWeek(string url, ulong discordUserId, params string[] selectors) => new()
 		{
 			Url = new(url),
 			Selectors = selectors.Any() ? string.Join("||", selectors) : "body",
@@ -75,8 +78,8 @@
 		/// </summary>
 		/// <param name="url">The URL to monitor.</param>
 		/// <param name="selectors">The CSS selectors to use. If none are provided, the entire body of the HTML will be used.</param>
-		/// <returns>A new <see cref="UrlContentMonitorRequest"/> instance.</returns>
-		public static UrlContentMonitorRequest TwiceQuickly(Uri url, ulong discordUserId, params string[] selectors) => new()
+		/// <returns>A new <see cref="MonitorContentRequest"/> instance.</returns>
+		public static MonitorContentRequest TwiceQuickly(Uri url, ulong discordUserId, params string[] selectors) => new()
 		{
 			Url = url,
 			Selectors = selectors.Any() ? string.Join("||", selectors) : "body",

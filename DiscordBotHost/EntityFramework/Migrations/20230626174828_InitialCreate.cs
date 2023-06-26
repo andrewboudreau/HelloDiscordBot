@@ -12,10 +12,10 @@ namespace DiscordBotHost.EntityFramework.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "ContentMonitorRequests",
+                name: "MonitorContentRequests",
                 columns: table => new
                 {
-                    UrlContentMonitorRequestId = table.Column<int>(type: "int", nullable: false)
+                    MonitorContentRequestId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Url = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Selectors = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -28,7 +28,7 @@ namespace DiscordBotHost.EntityFramework.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ContentMonitorRequests", x => x.UrlContentMonitorRequestId);
+                    table.PrimaryKey("PK_MonitorContentRequests", x => x.MonitorContentRequestId);
                 });
 
             migrationBuilder.CreateTable(
@@ -55,8 +55,7 @@ namespace DiscordBotHost.EntityFramework.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<decimal>(type: "decimal(20,0)", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<decimal>(type: "decimal(20,0)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DiscordUserId = table.Column<decimal>(type: "decimal(20,0)", nullable: false),
                     FirebaseId = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -71,9 +70,9 @@ namespace DiscordBotHost.EntityFramework.Migrations
                 name: "ContentInspections",
                 columns: table => new
                 {
-                    UrlContentInspectionId = table.Column<int>(type: "int", nullable: false)
+                    ContentInspectionId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UrlContentMonitorRequestId = table.Column<int>(type: "int", nullable: false),
+                    MonitorContentRequestId = table.Column<int>(type: "int", nullable: false),
                     ThresholdExceeded = table.Column<bool>(type: "bit", nullable: false),
                     Differences = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
@@ -81,19 +80,19 @@ namespace DiscordBotHost.EntityFramework.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ContentInspections", x => x.UrlContentInspectionId);
+                    table.PrimaryKey("PK_ContentInspections", x => x.ContentInspectionId);
                     table.ForeignKey(
-                        name: "FK_ContentInspections_ContentMonitorRequests_UrlContentMonitorRequestId",
-                        column: x => x.UrlContentMonitorRequestId,
-                        principalTable: "ContentMonitorRequests",
-                        principalColumn: "UrlContentMonitorRequestId",
+                        name: "FK_ContentInspections_MonitorContentRequests_MonitorContentRequestId",
+                        column: x => x.MonitorContentRequestId,
+                        principalTable: "MonitorContentRequests",
+                        principalColumn: "MonitorContentRequestId",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ContentInspections_UrlContentMonitorRequestId",
+                name: "IX_ContentInspections_MonitorContentRequestId",
                 table: "ContentInspections",
-                column: "UrlContentMonitorRequestId");
+                column: "MonitorContentRequestId");
         }
 
         /// <inheritdoc />
@@ -109,7 +108,7 @@ namespace DiscordBotHost.EntityFramework.Migrations
                 name: "Users");
 
             migrationBuilder.DropTable(
-                name: "ContentMonitorRequests");
+                name: "MonitorContentRequests");
         }
     }
 }

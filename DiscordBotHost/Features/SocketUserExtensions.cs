@@ -6,7 +6,7 @@ namespace DiscordBotHost.Features
 {
 	public static class SocketUserExtensions
 	{
-		public static async Task<User> GetOrCreateAsync(this DiscordBotDbContext dbContext, SocketUser user)
+		public static async Task<User> GetOrCreateUser(this DiscordBotDbContext dbContext, SocketUser user)
 		{
 			var entity = await dbContext.Users
 				.Where(x => x.DiscordUserId == user.Id)
@@ -18,7 +18,7 @@ namespace DiscordBotHost.Features
 
 		public static async Task<User> SetLinksChannel(this DiscordBotDbContext dbContext, SocketUser socketUser, ulong channelId)
 		{
-			var user = await dbContext.GetOrCreateAsync(socketUser);
+			var user = await dbContext.GetOrCreateUser(socketUser);
 			user.SetLinksChannelId(channelId);
 			await dbContext.SaveChangesAsync();
 

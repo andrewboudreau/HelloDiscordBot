@@ -5,7 +5,7 @@
 		public static bool TryGetOptionValue<T>(this SocketSlashCommand command, string name, out T value, T defaultValue = default!)
 		{
 			value = defaultValue;
-			var option = command.Data.Options?.FirstOrDefault(o => o.Name == name);
+			var option = command.Data.Options?.FirstOrDefault(o => o.Name.ToLowerInvariant() == name.ToLowerInvariant());
 
 			if (option == null)
 			{

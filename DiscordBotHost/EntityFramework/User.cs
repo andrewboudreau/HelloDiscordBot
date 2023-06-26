@@ -20,7 +20,7 @@
 		public ulong LinksChannelId { get; private set; }
 
 		public static User Create(string name, ulong discordId, ulong linksChannel = Globals.DefaultChannelId)
-			=> new(0, name, discordId, "", linksChannel);
+			=> new(discordId, name, discordId, "", linksChannel);
 
 		public void SetLinksChannelId(ulong channelId)
 		{

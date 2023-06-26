@@ -4,7 +4,7 @@
 	/// Manages the monitoring of content from a URL. This class represents a single iteration of getting the content 
 	/// from the URL, extracting the text from the content, comparing the text, and storing the differences.
 	/// </summary>
-	public class UrlContentInspection
+	public class ContentInspection
 	{
 		/// <summary>
 		/// Delegate for comparing content.
@@ -14,7 +14,7 @@
 		/// <summary>
 		/// Private constructor used for initialization.
 		/// </summary>
-		private UrlContentInspection()
+		private ContentInspection()
 		{
 		}
 
@@ -22,7 +22,7 @@
 		/// Public constructor initializing the class with a specific comparison method.
 		/// </summary>
 		/// <param name="compareContent">A method to be used for content comparison.</param>
-		public UrlContentInspection(Func<string, string, Task<(string[] Differences, double Difference)>> compareContent)
+		public ContentInspection(Func<string, string, Task<(string[] Differences, double Difference)>> compareContent)
 		{
 			this.compareContent = compareContent;
 		}
@@ -30,12 +30,12 @@
 		/// <summary>
 		/// Unique identifier for this inspection.
 		/// </summary>
-		public int UrlContentInspectionId { get; private set; }
+		public int ContentInspectionId { get; private set; }
 
 		/// <summary>
 		/// Associated monitor request for this inspection.
 		/// </summary>
-		public UrlContentMonitorRequest UrlContentMonitorRequest { get; protected set; }
+		public MonitorContentRequest MonitorContentRequest { get; protected set; }
 
 		/// <summary>
 		/// Indicates whether the difference threshold has been exceeded.
@@ -83,7 +83,7 @@
 		public async Task Compare(string previous, string next, Func<string, string, Task<(string[] Differences, double Difference)>> compareContent)
 		{
 			var result = await compareContent(previous, next);
-			if (result.Difference >= UrlContentMonitorRequest.DifferenceThreshold)
+			if (result.Difference >= MonitorContentRequest.DifferenceThreshold)
 			{
 				ThresholdExceeded = true;
 				Differences = string.Join('\n', result.Differences);
