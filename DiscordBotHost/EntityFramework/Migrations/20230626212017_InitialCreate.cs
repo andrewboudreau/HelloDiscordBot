@@ -73,7 +73,8 @@ namespace DiscordBotHost.EntityFramework.Migrations
                     ContentInspectionId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     MonitorContentRequestId = table.Column<int>(type: "int", nullable: false),
-                    ThresholdExceeded = table.Column<bool>(type: "bit", nullable: false),
+                    DifferenceThreshold = table.Column<double>(type: "float", nullable: false),
+                    DifferenceValue = table.Column<double>(type: "float", nullable: false),
                     Differences = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     Error = table.Column<string>(type: "nvarchar(max)", nullable: true)

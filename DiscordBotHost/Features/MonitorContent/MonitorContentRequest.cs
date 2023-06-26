@@ -1,11 +1,12 @@
 ﻿namespace DiscordBotHost.Features.ContentMonitor
 {
+
 	/// <summary>
 	/// Represents a request to monitor the content of a URL.
 	/// </summary>
 	public class MonitorContentRequest
 	{
-		public MonitorContentRequest()
+		private MonitorContentRequest()
 		{
 		}
 
@@ -56,6 +57,12 @@
 		/// Gets or sets the value of the user who created the request.
 		/// </summary>
 		public ulong DiscordUserId { get; set; }
+
+		/// <summary>
+		/// Starts a new inspection for this request.
+		/// </summary>
+		/// <returns>The content inspection.</returns>
+		public ContentInspection StartInspection() => ContentInspection.From(this);
 
 		/// <summary>
 		/// Creates a new instance that monitors a URL once daily for the next week.

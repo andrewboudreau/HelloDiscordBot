@@ -5,6 +5,8 @@ using DiscordBotHost.Notifications;
 
 using MediatR;
 
+using Microsoft.EntityFrameworkCore;
+
 namespace DiscordBotHost.Commands.LinksChannel
 {
 	public class MonitorContentService(DiscordBotDbContext dbContext) :
@@ -44,17 +46,28 @@ namespace DiscordBotHost.Commands.LinksChannel
 
 		private async Task RunMonitorRequest(SocketSlashCommand command)
 		{
-			if (command.HasInvalidOption("requestid", out int requestId, defaultValue: 0))
+			if (command.HasInvalidOption("requestid", out int requestId))
 			{
 				await command.RespondAsync("You didn't specify a monitor request id.", ephemeral: true);
 				return;
 			}
 
-			var user = await dbContext.GetOrCreateUser(command.User);
-			//var request = await dbContext.ContentMonitorRequests.Where(x => x.ContentMonitorRequestId);
+			var request = await dbContext.MonitorContentRequests
+				.Where(x => x.DiscordUserId == command.User.Id)
+				.FirstOrDefaultAsync(x => x.MonitorContentRequestId == requestId);
 
-			await command.RespondAsync($"Monitor request for id `{requestId}` by user <@{user.Id}> would be run now.");
-			//await dbContext.SaveChangesAsync(CancellationToken.None);
+			if (request is null)
+			{
+				await command.RespondAsync("Could not find monitor request for id {requestId}", ephemeral: true);
+				return;
+			}
+
+			var inspection = request.StartInspection();
+			inspection.Compare("", "aaa");
+			dbContext.Add(inspection);
+			await dbContext.SaveChangesAsync(CancellationToken.None);
+
+			await command.RespondAsync($"Monitor request for id `{requestId}` by user <@{command.User.Id}> was run, Threshold was {inspection.DifferenceValue}");
 		}
 
 		private async Task ListMonitors(SocketSlashCommand command)

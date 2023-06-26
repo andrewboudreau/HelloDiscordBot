@@ -9,20 +9,27 @@
 		/// <summary>
 		/// Delegate for comparing content.
 		/// </summary>
-		private readonly Func<string, string, Task<(string[] Differences, double Difference)>> compareContent;
+		private readonly Func<string, string, (string[] Differences, double Difference)> compareContent;
 
 		/// <summary>
 		/// Private constructor used for initialization.
 		/// </summary>
 		private ContentInspection()
 		{
+			var detector = new ContentChangeDetector();
+			compareContent = (prev, next) =>
+			{
+				var differences = new List<string>();
+				var difference = detector.DetectDifferences(prev, next, diff => differences.Add(diff));
+				return (differences.ToArray(), difference);
+			};
 		}
 
 		/// <summary>
 		/// Public constructor initializing the class with a specific comparison method.
 		/// </summary>
 		/// <param name="compareContent">A method to be used for content comparison.</param>
-		public ContentInspection(Func<string, string, Task<(string[] Differences, double Difference)>> compareContent)
+		public ContentInspection(Func<string, string, (string[] Differences, double Difference)> compareContent)
 		{
 			this.compareContent = compareContent;
 		}
@@ -38,9 +45,14 @@
 		public MonitorContentRequest MonitorContentRequest { get; protected set; }
 
 		/// <summary>
-		/// Indicates whether the difference threshold has been exceeded.
+		/// Gets the threshold value for the difference to be considered a change.
 		/// </summary>
-		public bool ThresholdExceeded { get; private set; }
+		public double DifferenceThreshold { get; private set; }
+
+		/// <summary>
+		/// Gets the value of the difference between the previous and next content.
+		/// </summary>
+		public double DifferenceValue { get; private set; }
 
 		/// <summary>
 		/// Stores differences as a string.
@@ -64,15 +76,8 @@
 		/// <param name="previous">Previous content string.</param>
 		/// <param name="next">Next content string.</param>
 		/// <exception cref="InvalidOperationException">Thrown when no compare strategy is set.</exception>
-		public Task Compare(string previous, string next)
-		{
-			if (compareContent is null)
-			{
-				throw new InvalidOperationException($"Cannot compare content when no compare strategy is set. Use the overload `{nameof(Compare)}` one in the constructor.");
-			}
-
-			return Compare(previous, next, compareContent);
-		}
+		public void Compare(string previous, string next)
+			=> Compare(previous, next, compareContent);
 
 		/// <summary>
 		/// Compare content using a specified comparison method.
@@ -80,12 +85,12 @@
 		/// <param name="previous">Previous content string.</param>
 		/// <param name="next">Next content string.</param>
 		/// <param name="compareContent">Specific content comparison method.</param>
-		public async Task Compare(string previous, string next, Func<string, string, Task<(string[] Differences, double Difference)>> compareContent)
+		public void Compare(string previous, string next, Func<string, string, (string[] Differences, double Difference)> compareContent)
 		{
-			var result = await compareContent(previous, next);
+			var result = compareContent(previous, next);
 			if (result.Difference >= MonitorContentRequest.DifferenceThreshold)
 			{
-				ThresholdExceeded = true;
+				DifferenceValue = result.Difference;
 				Differences = string.Join('\n', result.Differences);
 			}
 		}
@@ -97,6 +102,16 @@
 		public void SetError(string error)
 		{
 			Error = error;
+		}
+
+		public static ContentInspection From(MonitorContentRequest request)
+		{
+			return new ContentInspection
+			{
+				MonitorContentRequest = request,
+				DifferenceThreshold = request.DifferenceThreshold,
+				CreatedAt = DateTimeOffset.UtcNow
+			};
 		}
 	}
 }

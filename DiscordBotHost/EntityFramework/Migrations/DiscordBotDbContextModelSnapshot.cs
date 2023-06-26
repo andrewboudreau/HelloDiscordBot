@@ -100,6 +100,12 @@ namespace DiscordBotHost.EntityFramework.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<double>("DifferenceThreshold")
+                        .HasColumnType("float");
+
+                    b.Property<double>("DifferenceValue")
+                        .HasColumnType("float");
+
                     b.Property<string>("Differences")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -109,9 +115,6 @@ namespace DiscordBotHost.EntityFramework.Migrations
 
                     b.Property<int>("MonitorContentRequestId")
                         .HasColumnType("int");
-
-                    b.Property<bool>("ThresholdExceeded")
-                        .HasColumnType("bit");
 
                     b.HasKey("ContentInspectionId");
 

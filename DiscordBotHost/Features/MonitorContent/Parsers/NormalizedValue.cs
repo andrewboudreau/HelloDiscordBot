@@ -1,5 +1,8 @@
 ﻿namespace DiscordBotHost.Features.ContentMonitor.Parsers
 {
+	/// <summary>
+	/// A value between 0 and 1.
+	/// </summary>
 	public struct NormalizedValue
 	{
 		private double value;
@@ -15,9 +18,9 @@
 			this.value = value < 0 ? 0 : value > 1 ? 1 : value;
 		}
 
-		public static implicit operator NormalizedValue(double value) => new NormalizedValue(value);
-		public static implicit operator NormalizedValue(float value) => new NormalizedValue(value);
-		public static implicit operator NormalizedValue(int value) => new NormalizedValue(value);
+		public static implicit operator NormalizedValue(double value) => new(value);
+		public static implicit operator NormalizedValue(float value) => new(value);
+		public static implicit operator NormalizedValue(int value) => new(value);
 
 		public static implicit operator double(NormalizedValue nv) => nv.value;
 		public static implicit operator float(NormalizedValue nv) => (float)nv.value;
