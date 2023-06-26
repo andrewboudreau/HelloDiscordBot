@@ -76,13 +76,14 @@
 		/// <param name="url">The URL to monitor.</param>
 		/// <param name="selectors">The CSS selectors to use. If none are provided, the entire body of the HTML will be used.</param>
 		/// <returns>A new <see cref="UrlContentMonitorRequest"/> instance.</returns>
-		public static UrlContentMonitorRequest EveryHourForever(Uri url, params string[] selectors) => new UrlContentMonitorRequest()
+		public static UrlContentMonitorRequest TwiceQuickly(Uri url, ulong discordUserId, params string[] selectors) => new()
 		{
 			Url = url,
 			Selectors = selectors.Any() ? string.Join("||", selectors) : "body",
 			CreatedAt = DateTimeOffset.UtcNow,
-			Interval = TimeSpan.FromHours(1),
-			RunUntil = DateTimeOffset.MaxValue
+			Interval = TimeSpan.FromSeconds(30),
+			RunUntil = DateTimeOffset.UtcNow.AddSeconds(45),
+			DiscordUserId = discordUserId
 		};
 	}
 

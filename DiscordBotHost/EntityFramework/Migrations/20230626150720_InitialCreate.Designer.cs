@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DiscordBotHost.EntityFramework.Migrations
 {
     [DbContext(typeof(DiscordBotDbContext))]
-    [Migration("20230626050522_InitialCreate")]
+    [Migration("20230626150720_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -27,11 +27,11 @@ namespace DiscordBotHost.EntityFramework.Migrations
 
             modelBuilder.Entity("DiscordBotHost.EntityFramework.User", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<decimal>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("decimal(20,0)");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
                     b.Property<decimal>("DiscordUserId")
                         .HasColumnType("decimal(20,0)");

@@ -2,11 +2,13 @@
 using DiscordBotHost.Features;
 using DiscordBotHost.Features.ContentMonitor;
 
+using Fizzler;
+
 using MediatR;
 
 namespace DiscordBotHost.Commands.LinksChannel
 {
-    public class MonitorContentService :
+	public class MonitorContentService :
 		INotificationHandler<ReadyNotification>,
 		INotificationHandler<SlashCommandNotification>
 	{
@@ -50,13 +52,13 @@ namespace DiscordBotHost.Commands.LinksChannel
 
 		private async Task RunMonitorRequest(SocketSlashCommand command)
 		{
-			if (command.Data.Options.FirstOrDefault(o => o.Name == "requestid")?.Value is not int monitorRequestId)
+			if (command.HasInvalidOption("requestid", out int requestId, defaultValue: 0))
 			{
 				await command.RespondAsync("You didn't specify a monitor request id.", ephemeral: true);
 				return;
 			}
 
-			await command.RespondAsync($"Monitor request for id {monitorRequestId} by user {user.Id} would be run now.");
+			await command.RespondAsync($"Monitor request for id {requestId} by user {user.Id} would be run now.");
 			//await dbContext.SaveChangesAsync(CancellationToken.None);
 		}
 
@@ -72,19 +74,16 @@ namespace DiscordBotHost.Commands.LinksChannel
 
 		private async Task CreateMonitorForUrl(SocketSlashCommand command)
 		{
-			if (!command.TryGetValue("url", out string url))
+			if (command.HasInvalidOption("url", out Uri? url) || url is null)
 			{
 				await command.RespondAsync("You didn't specify a url.", ephemeral: true);
 				return;
 			}
 
-			if (!command.TryGetValue("selector", out string selector))
-			{
-				selector = "body";
-			}
+			var selector = command.GetOptionValue("selector", defaultValue: "body");
 
 			dbContext.ContentMonitorRequests.Add(
-				UrlContentMonitorRequest.DailyForTheNextWeek(url, command.User.Id, selector));
+				UrlContentMonitorRequest.TwiceQuickly(url, command.User.Id, selector));
 
 			await dbContext.SaveChangesAsync();
 

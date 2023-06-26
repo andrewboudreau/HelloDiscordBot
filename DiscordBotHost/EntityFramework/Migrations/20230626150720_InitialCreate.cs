@@ -55,7 +55,7 @@ namespace DiscordBotHost.EntityFramework.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<decimal>(type: "decimal(20,0)", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DiscordUserId = table.Column<decimal>(type: "decimal(20,0)", nullable: false),

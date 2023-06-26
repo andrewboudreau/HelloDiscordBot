@@ -1,4 +1,8 @@
-﻿using Discord.Rest;
+﻿using Discord.Net;
+
+using MediatR;
+
+using IRequest = MediatR.IRequest;
 
 namespace DiscordBotHost.Features
 {
@@ -6,11 +10,30 @@ namespace DiscordBotHost.Features
 	{
 		string FeaturePrefix { get; }
 
-		Task InstallSlashCommands(DiscordSocketClient client);
+		Task<IRequest> Commands<TResponse>(ulong userId = 0);
 
-		Task UninstallSlashCommands(DiscordSocketClient client);
+		Task<IRequest<TResponse>> Queries<TResponse>(ulong userId = 0);
 
-		Task RegisterDiscordHandlers(DiscordSocketClient client);
+		Task<INotification> Events();
+		
+		Task AddCommands();
+		Task RemoveCommands();
+
+		Task AddQueries();
+		Task Subscribe();
+		Task Unsubscribe();
+
+		Task AddSlashCommands(DiscordSocketClient client);
+
+		Task RemoveSlashCommands(DiscordSocketClient client);
+
+		Task AddEventHandlers(DiscordSocketClient client);
+		
+		Task RemoveEventHandlers(DiscordSocketClient client);
+
+		Task AddServices(DiscordSocketClient client);
+
+		Task AddHttpEndpoints(object endpointRouteBuilder);
 
 	}
 }

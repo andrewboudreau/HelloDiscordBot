@@ -4,7 +4,7 @@
 	{
 		public static User Empty { get; } = new User(0, "", 0, "", 0);
 
-		private User(int id, string name, ulong discordUserId, string firebaseId, ulong linksChannelId)
+		private User(ulong id, string name, ulong discordUserId, string firebaseId, ulong linksChannelId)
 		{
 			Id = id;
 			Name = name;
@@ -13,7 +13,7 @@
 			LinksChannelId = linksChannelId;
 		}
 
-		public int Id { get; private set; }
+		public ulong Id { get; private set; }
 		public string Name { get; private set; }
 		public ulong DiscordUserId { get; private set; }
 		public string FirebaseId { get; private set; }

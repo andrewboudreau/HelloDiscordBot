@@ -5,7 +5,7 @@ using MediatR;
 
 namespace DiscordBotHost.Commands.LinksChannel
 {
-	public class SharedLinksService : 
+	public class SharedLinksService :
 		INotificationHandler<SlashCommandNotification>,
 		INotificationHandler<ReadyNotification>
 	{
@@ -16,7 +16,7 @@ namespace DiscordBotHost.Commands.LinksChannel
 		{
 			this.dbContext = dbContext;
 		}
-		
+
 		public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
 		{
 			Log.Information("Creating guild commands for SharedLinks");
@@ -49,7 +49,7 @@ namespace DiscordBotHost.Commands.LinksChannel
 
 		private async Task SetLinksChannel(SocketSlashCommand command)
 		{
-			if (command.Data.Options.FirstOrDefault(o => o.Name == "channel")?.Value is not SocketGuildChannel channel)
+			if (command.HasInvalidOption<SocketGuildChannel>("channel", out var channel))
 			{
 				await command.RespondAsync("You didn't specify a channel.", ephemeral: true);
 				return;

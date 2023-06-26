@@ -23,16 +23,18 @@ public class DiscordEventListener
 	public async Task StartAsync(string discordToken)
 	{
 		Log.Information("DiscordEventListener starting.");
-
 		Log.Debug("DiscordEventListener SocketClient Login starting.");
+
 		await client.LoginAsync(TokenType.Bot, discordToken);
+
 		Log.Debug("DiscordEventListener SocketClient Login completed.");
-
 		Log.Debug("DiscordEventListener SocketClient starting.");
-		await client.StartAsync();
-		Log.Debug("DiscordEventListener SocketClient started.");
 
+		await client.StartAsync();
+
+		Log.Debug("DiscordEventListener SocketClient started.");
 		Log.Debug("DiscordEventListener binding event handlers starting.");
+
 		client.Ready += OnReadyAsync;
 		client.MessageReceived += OnMessageReceivedAsync;
 		client.ReactionAdded += HandleReactionAdded;
@@ -40,6 +42,34 @@ public class DiscordEventListener
 
 		Log.Debug("DiscordEventListener binding event handlers completed.");
 		Log.Debug("DiscordEventListener starting completed.");
+
+	}
+	public async Task StopAsync()
+	{
+		Log.Information("DiscordEventListener stopping.");
+		Log.Debug("DiscordEventListener cancellation token cancelling.");
+
+		cts.Cancel();
+
+		Log.Debug("DiscordEventListener cancellation token cancelled.");
+		Log.Debug("DiscordEventListener SocketClient Logout starting.");
+
+		await client.LogoutAsync();
+
+		Log.Debug("DiscordEventListener SocketClient Logout completed.");
+		Log.Debug("DiscordEventListener SocketClient stopping.");
+
+		await client.StopAsync();
+
+		Log.Debug("DiscordEventListener SocketClient stopped.");
+		Log.Debug("DiscordEventListener removing event handlers starting.");
+
+		client.Ready -= OnReadyAsync;
+		client.MessageReceived -= OnMessageReceivedAsync;
+		client.ReactionAdded -= HandleReactionAdded;
+
+		Log.Debug("DiscordEventListener removing event handlers completed.");
+		Log.Information("DiscordEventListener stopped.");
 	}
 
 	private async Task HandleInteractionCreated(SocketInteraction arg)
@@ -50,30 +80,6 @@ public class DiscordEventListener
 			var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 			await mediator.Publish(new SlashCommandNotification(command), cts.Token);
 		}
-	}
-
-	public async Task StopAsync()
-	{
-		Log.Information("DiscordEventListener stopping.");
-		Log.Debug("DiscordEventListener cancellation token cancelling.");
-		cts.Cancel();
-		Log.Debug("DiscordEventListener cancellation token cancelled.");
-
-		Log.Debug("DiscordEventListener SocketClient Logout starting.");
-		await client.LogoutAsync();
-		Log.Debug("DiscordEventListener SocketClient Logout completed.");
-
-		Log.Debug("DiscordEventListener SocketClient stopping.");
-		await client.StopAsync();
-		Log.Debug("DiscordEventListener SocketClient stopped.");
-
-		Log.Debug("DiscordEventListener removing event handlers starting.");
-		client.Ready -= OnReadyAsync;
-		client.MessageReceived -= OnMessageReceivedAsync;
-		client.ReactionAdded -= HandleReactionAdded;
-		Log.Debug("DiscordEventListener removing event handlers completed.");
-
-		Log.Information("DiscordEventListener stopped.");
 	}
 
 	private async Task HandleReactionAdded(Cacheable<IUserMessage, ulong> cachedMessage, Cacheable<IMessageChannel, ulong> cachedChannel, SocketReaction reaction)
