@@ -5,7 +5,9 @@ using MediatR;
 
 namespace DiscordBotHost.Commands.LinksChannel
 {
-	public class SharedLinksService : INotificationHandler<SlashCommandNotification>
+	public class SharedLinksService : 
+		INotificationHandler<SlashCommandNotification>,
+		INotificationHandler<ReadyNotification>
 	{
 		private readonly DiscordBotDbContext dbContext;
 		private User user;
@@ -14,10 +16,19 @@ namespace DiscordBotHost.Commands.LinksChannel
 		{
 			this.dbContext = dbContext;
 		}
+		
+		public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
+		{
+			Log.Information("Creating guild commands for MonitorContent");
+			foreach (var commandProperties in MonitorContentCommandDefinitions.MonitorContentCommands())
+			{
+				await notification.Client.Rest.CreateGuildCommand(commandProperties, Globals.DiscordServerId);
+			}
+		}
 
 		public async Task Handle(SlashCommandNotification notification, CancellationToken cancellationToken)
 		{
-			var command = notification.Message;
+			var command = notification.Command;
 			switch (command.Data.Name)
 			{
 				case SharedLinksCommandDefinitions.SetLinksChannel:

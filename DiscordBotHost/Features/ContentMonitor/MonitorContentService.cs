@@ -6,7 +6,7 @@ using MediatR;
 
 namespace DiscordBotHost.Commands.LinksChannel
 {
-	public class MonitorContentService :
+    public class MonitorContentService :
 		INotificationHandler<ReadyNotification>,
 		INotificationHandler<SlashCommandNotification>
 	{
@@ -29,18 +29,18 @@ namespace DiscordBotHost.Commands.LinksChannel
 
 		public async Task Handle(SlashCommandNotification notification, CancellationToken cancellationToken)
 		{
-			user = await dbContext.GetOrCreateAsync(notification.Message.User);
+			user = await dbContext.GetOrCreateAsync(notification.Command.User);
 
-			Task result = notification.Message.Data.Name switch
+			Task result = notification.Command.Data.Name switch
 			{
 				MonitorContentCommandDefinitions.MonitorUrl
-					=> CreateMonitorForUrl(notification.Message),
+					=> CreateMonitorForUrl(notification.Command),
 
 				MonitorContentCommandDefinitions.MonitorList
-					=> ListMonitors(notification.Message),
+					=> ListMonitors(notification.Command),
 
 				MonitorContentCommandDefinitions.MonitorRun
-					=> RunMonitorRequest(notification.Message),
+					=> RunMonitorRequest(notification.Command),
 
 				_ => Task.CompletedTask
 			};
@@ -89,22 +89,6 @@ namespace DiscordBotHost.Commands.LinksChannel
 			await dbContext.SaveChangesAsync();
 
 			await command.RespondAsync($"User <@{command.User.Id}> has links channel set to <#{user.LinksChannelId}>.");
-		}
-	}
-
-	public static class OptionDataExtensions
-	{
-		public static bool TryGetValue<T>(this SocketSlashCommand command, string name, out T value, T defaultValue = default!)
-		{
-			value = defaultValue;
-			var option = command.Data.Options?.FirstOrDefault(o => o.Name == name);
-			if (option == null || option.Value is not T typedValue)
-			{
-				return false;
-			}
-
-			value = typedValue;
-			return true;
 		}
 	}
 }

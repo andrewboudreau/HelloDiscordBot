@@ -1,7 +1,4 @@
-﻿using Discord;
-
-using DiscordBotHost.EntityFramework;
-using DiscordBotHost.Features;
+﻿using DiscordBotHost.EntityFramework;
 
 using MediatR;
 
