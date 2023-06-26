@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DiscordBotHost.EntityFramework.Migrations
 {
     [DbContext(typeof(DiscordBotDbContext))]
-    [Migration("20230625200043_AddFeatures_Opportunity_Monitors")]
-    partial class AddFeatures_Opportunity_Monitors
+    [Migration("20230626050522_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace DiscordBotHost.EntityFramework.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("DiscordBotHost.EntityFramework.DiscordUser", b =>
+            modelBuilder.Entity("DiscordBotHost.EntityFramework.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -33,7 +33,7 @@ namespace DiscordBotHost.EntityFramework.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("DiscordId")
+                    b.Property<decimal>("DiscordUserId")
                         .HasColumnType("decimal(20,0)");
 
                     b.Property<string>("FirebaseId")
@@ -143,8 +143,8 @@ namespace DiscordBotHost.EntityFramework.Migrations
                     b.Property<decimal>("DiscordUserId")
                         .HasColumnType("decimal(20,0)");
 
-                    b.Property<TimeSpan>("Interval")
-                        .HasColumnType("time");
+                    b.Property<long>("Interval")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("Repeat")
                         .HasColumnType("int");

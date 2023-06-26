@@ -1,4 +1,7 @@
-﻿using DiscordBotHost.EntityFramework;
+﻿using Discord;
+
+using DiscordBotHost.EntityFramework;
+using DiscordBotHost.Features;
 
 using MediatR;
 
@@ -37,7 +40,9 @@ namespace DiscordBotHost
 
 		public async Task Handle(SharedLinkReceivedNotification notification, CancellationToken cancellationToken)
 		{
-			if (await discordClient.GetChannelAsync(SharedLinksChannel) is not IMessageChannel targetChannel)
+			var andrew = dbContext.Users.Where(x => x.Id == 1).Single();
+			
+			if (await discordClient.GetChannelAsync(andrew.LinksChannelId) is not IMessageChannel targetChannel)
 			{
 				Log.Error("The target channel was null when attempting to share.");
 				return;

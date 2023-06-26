@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DiscordBotHost.EntityFramework.Migrations
 {
     /// <inheritdoc />
-    public partial class AddFeatures_Opportunity_Monitors : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -19,7 +19,7 @@ namespace DiscordBotHost.EntityFramework.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Url = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Selectors = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Interval = table.Column<TimeSpan>(type: "time", nullable: false),
+                    Interval = table.Column<long>(type: "bigint", nullable: false),
                     Repeat = table.Column<int>(type: "int", nullable: false),
                     RunUntil = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     DifferenceThreshold = table.Column<double>(type: "float", nullable: false),
@@ -49,6 +49,22 @@ namespace DiscordBotHost.EntityFramework.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Opportunities", x => x.OpportunityId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Users",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DiscordUserId = table.Column<decimal>(type: "decimal(20,0)", nullable: false),
+                    FirebaseId = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LinksChannelId = table.Column<decimal>(type: "decimal(20,0)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Users", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -88,6 +104,9 @@ namespace DiscordBotHost.EntityFramework.Migrations
 
             migrationBuilder.DropTable(
                 name: "Opportunities");
+
+            migrationBuilder.DropTable(
+                name: "Users");
 
             migrationBuilder.DropTable(
                 name: "ContentMonitorRequests");

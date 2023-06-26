@@ -18,6 +18,7 @@ IConfiguration config = new ConfigurationBuilder()
 
 var services = new ServiceCollection()
 	.AddSingleton(config)
+	.AddLogging(builder => builder.AddSerilog())
 	.AddSingleton(new OpenAIClient(new(config["OPENAI_API_KEY"], config["OPENAI_ORGANIZATION_ID"])))
 	.AddSingleton(sp =>
 	{
@@ -44,9 +45,11 @@ var services = new ServiceCollection()
 	.AddMediatR(x => x.RegisterServicesFromAssemblyContaining<Program>())
 	.AddDbContext<DiscordBotDbContext>(options =>
 	{
-		options.UseSqlServer(config["MSSQL_CONNECTIONSTRING"]);
+		options.UseSqlServer(
+			config["MSSQL_CONNECTIONSTRING"],
+			sqlOptions => sqlOptions.EnableRetryOnFailure())
+		.EnableSensitiveDataLogging();
 	})
-	.AddScoped<MonitorContentService>()
 	.BuildServiceProvider();
 
 if (EF.IsDesignTime)

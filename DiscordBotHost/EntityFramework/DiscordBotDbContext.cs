@@ -16,12 +16,12 @@ namespace DiscordBotHost.EntityFramework
 		{
 		}
 
-		public DbSet<DiscordUser> Users { get; set; }
+		public DbSet<User> Users { get; set; }
 
 		public DbSet<Opportunity> Opportunities { get; set; }
 
 		public DbSet<UrlContentMonitorRequest> ContentMonitorRequests { get; set; }
-		
+
 		public DbSet<UrlContentInspection> ContentInspections { get; set; }
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -29,7 +29,14 @@ namespace DiscordBotHost.EntityFramework
 			base.OnModelCreating(modelBuilder);
 
 			modelBuilder.Entity<Opportunity>().HasKey(x => x.OpportunityId);
+
 			modelBuilder.Entity<UrlContentMonitorRequest>().HasKey(x => x.UrlContentMonitorRequestId);
+
+			modelBuilder.Entity<UrlContentMonitorRequest>().Property(x => x.Interval)
+				.HasConversion(
+					convertToProviderExpression: timespan => timespan.Ticks,
+					convertFromProviderExpression: ticks => TimeSpan.FromTicks(ticks));
+
 			modelBuilder.Entity<UrlContentInspection>().HasKey(x => x.UrlContentInspectionId);
 		}
 	}

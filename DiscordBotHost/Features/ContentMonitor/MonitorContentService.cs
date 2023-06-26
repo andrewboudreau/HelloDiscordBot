@@ -1,109 +1,110 @@
 ﻿using DiscordBotHost.EntityFramework;
+using DiscordBotHost.Features;
 using DiscordBotHost.Features.ContentMonitor;
 
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
+using MediatR;
 
 namespace DiscordBotHost.Commands.LinksChannel
 {
-	public class MonitorContentService
+	public class MonitorContentService :
+		INotificationHandler<ReadyNotification>,
+		INotificationHandler<SlashCommandNotification>
 	{
-		private DiscordSocketClient client;
-		private DiscordBotDbContext dbContext;
+		private readonly DiscordBotDbContext dbContext;
+		private User user;
 
-		public static async Task CreateGuildCommands(DiscordSocketClient client)
+		public MonitorContentService(DiscordBotDbContext dbContext)
 		{
+			this.dbContext = dbContext;
+		}
+
+		public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
+		{
+			Log.Information("Creating guild commands for MonitorContent");
 			foreach (var commandProperties in MonitorContentCommandDefinitions.MonitorContentCommands())
 			{
-				await client.Rest.CreateGuildCommand(commandProperties, Globals.DiscordServerId);
+				await notification.Client.Rest.CreateGuildCommand(commandProperties, Globals.DiscordServerId);
 			}
 		}
 
-		public MonitorContentService(DiscordSocketClient client, DiscordBotDbContext dbContext)
+		public async Task Handle(SlashCommandNotification notification, CancellationToken cancellationToken)
 		{
-			this.client = client;
-			this.dbContext = dbContext;
+			user = await dbContext.GetOrCreateAsync(notification.Message.User);
 
-			this.client.InteractionCreated += HandleCommandAsync;
-			//this.client.Ready += HandleReadyAsync;
-		}
-
-		private Task HandleReadyAsync() 
-			=> CreateGuildCommands(client);
-
-		private async Task HandleCommandAsync(SocketInteraction arg)
-		{
-			// Make sure it's a slash command
-			if (arg is not SocketSlashCommand command)
-				return;
-
-			switch (command.Data.Name)
+			Task result = notification.Message.Data.Name switch
 			{
-				case "monitor-url":
-					await CreateMonitorForUrl(command);
-					break;
+				MonitorContentCommandDefinitions.MonitorUrl
+					=> CreateMonitorForUrl(notification.Message),
 
-				case "monitor-list":
-					await ListMonitors(command);
-					break;
+				MonitorContentCommandDefinitions.MonitorList
+					=> ListMonitors(notification.Message),
 
-				case "monitor-run":
-					await RunMonitorRequest(command);
-					break;
-			}
+				MonitorContentCommandDefinitions.MonitorRun
+					=> RunMonitorRequest(notification.Message),
+
+				_ => Task.CompletedTask
+			};
+
+			await result;
 		}
 
 		private async Task RunMonitorRequest(SocketSlashCommand command)
 		{
-			if (command.Data.Options.FirstOrDefault(o => o.Name == "MonitorId")?.Value is not int monitorRequestId)
+			if (command.Data.Options.FirstOrDefault(o => o.Name == "requestid")?.Value is not int monitorRequestId)
 			{
 				await command.RespondAsync("You didn't specify a monitor request id.", ephemeral: true);
 				return;
 			}
 
-			var user = await dbContext.Users.FirstOrDefaultAsync(x => x.DiscordId == command.User.Id, CancellationToken.None);
-			if (user is null)
-			{
-				await command.RespondAsync($"User {command.User.Id} was not found.");
-				return;
-			}
-
-			await command.RespondAsync($"Monitor request for id {monitorRequestId} by user {command.User.Id} would be run now.");
+			await command.RespondAsync($"Monitor request for id {monitorRequestId} by user {user.Id} would be run now.");
 			//await dbContext.SaveChangesAsync(CancellationToken.None);
 		}
 
 		private async Task ListMonitors(SocketSlashCommand command)
 		{
-			var user = await dbContext.Users.FirstOrDefaultAsync(x => x.DiscordId == command.User.Id, CancellationToken.None);
-			if (user is null)
+			foreach (var request in dbContext.ContentMonitorRequests.Where(x => x.DiscordUserId == user.DiscordUserId).ToList())
 			{
-				await command.RespondAsync($"Monitor-Request: User {command.User.Id} was not found.");
-				return;
+				var items = string.Join("\n", $"{request.UrlContentMonitorRequestId}: {request.Url}");
 			}
 
-			await command.RespondAsync($"User <@{command.User.Id}> has links channel set to <#{user.LinksChannelId}>.");
+			await command.RespondAsync($"User <@{command.User.Id}> has called monitor list.");
 		}
 
 		private async Task CreateMonitorForUrl(SocketSlashCommand command)
 		{
-			var user = await dbContext.Users.FirstOrDefaultAsync(x => x.DiscordId == command.User.Id, CancellationToken.None);
-			if (user == null)
+			if (!command.TryGetValue("url", out string url))
 			{
-				user = dbContext.Add(
-					new DiscordUser(0,
-						command.User.Username,
-						command.User.Id,
-						firebaseId: "",
-						Globals.DefaultChannelId)).Entity;
+				await command.RespondAsync("You didn't specify a url.", ephemeral: true);
+				return;
 			}
 
-			var request = UrlContentMonitorRequest
-				.DailyForTheNextWeek("https://www.florentineopera.org/auditions-employment", command.User.Id, ".Main-content");
+			if (!command.TryGetValue("selector", out string selector))
+			{
+				selector = "body";
+			}
 
-			dbContext.ContentMonitorRequests.Add(request);
+			dbContext.ContentMonitorRequests.Add(
+				UrlContentMonitorRequest.DailyForTheNextWeek(url, command.User.Id, selector));
+
 			await dbContext.SaveChangesAsync();
 
 			await command.RespondAsync($"User <@{command.User.Id}> has links channel set to <#{user.LinksChannelId}>.");
+		}
+	}
+
+	public static class OptionDataExtensions
+	{
+		public static bool TryGetValue<T>(this SocketSlashCommand command, string name, out T value, T defaultValue = default!)
+		{
+			value = defaultValue;
+			var option = command.Data.Options?.FirstOrDefault(o => o.Name == name);
+			if (option == null || option.Value is not T typedValue)
+			{
+				return false;
+			}
+
+			value = typedValue;
+			return true;
 		}
 	}
 }

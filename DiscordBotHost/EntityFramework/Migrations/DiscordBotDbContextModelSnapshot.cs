@@ -22,7 +22,7 @@ namespace DiscordBotHost.EntityFramework.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("DiscordBotHost.EntityFramework.DiscordUser", b =>
+            modelBuilder.Entity("DiscordBotHost.EntityFramework.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -30,7 +30,7 @@ namespace DiscordBotHost.EntityFramework.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("DiscordId")
+                    b.Property<decimal>("DiscordUserId")
                         .HasColumnType("decimal(20,0)");
 
                     b.Property<string>("FirebaseId")
@@ -140,8 +140,8 @@ namespace DiscordBotHost.EntityFramework.Migrations
                     b.Property<decimal>("DiscordUserId")
                         .HasColumnType("decimal(20,0)");
 
-                    b.Property<TimeSpan>("Interval")
-                        .HasColumnType("time");
+                    b.Property<long>("Interval")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("Repeat")
                         .HasColumnType("int");

@@ -4,9 +4,10 @@ namespace DiscordBotHost;
 
 public class ReadyNotification : INotification
 {
-    public static readonly ReadyNotification Default = new();
+	public ReadyNotification(DiscordSocketClient client)
+	{
+		this.Client = client;
+	}
 
-    private ReadyNotification()
-    {
-    }
+	public DiscordSocketClient Client { get; }
 }

@@ -94,36 +94,5 @@ namespace DiscordBotHost.Features.Auditions.Parsers
 
 			return await response.Content.ReadAsStringAsync();
 		}
-
-		private static string GetLineEnding(string content)
-		{
-			using var reader = new StringReader(content);
-			var buffer = new char[2];
-			var length = 0;
-
-			while ((length = reader.Read(buffer, 0, 2)) > 0)
-			{
-				if (buffer[0] == '\r')
-				{
-					if (length == 2 && buffer[1] == '\n')
-					{
-						Log.Information("Line ending type is \\r\\n");
-						return "\r\n";
-					}
-					else
-					{
-						Log.Information("Line ending type is \\r");
-						return "\r";
-					}
-				}
-				else if (buffer[0] == '\n')
-				{
-					Log.Information("Line ending type is \\n");
-					return "\n";
-				}
-			}
-
-			return "\n";
-		}
 	}
 }

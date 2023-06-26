@@ -2,10 +2,13 @@
 {
 	public static class SharedLinksCommandDefinitions
 	{
+		public const string SetLinksChannel = "setlinkschannel";
+		public const string ListLinksChannel = "listlinkschannel";
+
 		public static IEnumerable<SlashCommandProperties> SetLinksChannelCommands()
 		{
 			yield return new SlashCommandBuilder()
-				.WithName("setlinkschannel")
+				.WithName(SetLinksChannel)
 				.WithDescription("Sets the links channel.")
 				.AddOption(
 					name: "channel",
@@ -15,7 +18,7 @@
 				.Build();
 
 			yield return new SlashCommandBuilder()
-				.WithName("listlinkschannel")
+				.WithName(ListLinksChannel)
 				.WithDescription("Lists the current links channel.")
 				.Build();
 		}

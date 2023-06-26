@@ -1,54 +1,42 @@
 ﻿using DiscordBotHost.EntityFramework;
+using DiscordBotHost.Features;
 
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
+using MediatR;
 
 namespace DiscordBotHost.Commands.LinksChannel
 {
-	public class SharedLinksService
+	public class SharedLinksService : INotificationHandler<SlashCommandNotification>
 	{
-		private DiscordSocketClient client;
-		private DiscordBotDbContext dbContext;
+		private readonly DiscordBotDbContext dbContext;
+		private User user;
 
-		public SharedLinksService(DiscordSocketClient client, DiscordBotDbContext dbContext)
+		public SharedLinksService(DiscordBotDbContext dbContext)
 		{
-			this.client = client;
 			this.dbContext = dbContext;
-
-			//this.client.InteractionCreated += HandleCommandAsync;
 		}
 
-		private async Task HandleCommandAsync(SocketInteraction arg)
+		public async Task Handle(SlashCommandNotification notification, CancellationToken cancellationToken)
 		{
-			// Make sure it's a slash command
-			if (arg is not SocketSlashCommand command)
-				return;
-
+			var command = notification.Message;
 			switch (command.Data.Name)
 			{
-				case "SetLinksChannel":
-					await HandleSetLinksChannelCommandAsync(command);
+				case SharedLinksCommandDefinitions.SetLinksChannel:
+					await SetLinksChannel(command);
 					break;
-				case "ListLinksChannel":
-					await HandleListLinksChannelCommandAsync(command);
+
+				case SharedLinksCommandDefinitions.ListLinksChannel:
+					await ListLinksChannel(command);
 					break;
 			}
 		}
 
-		private async Task HandleListLinksChannelCommandAsync(SocketSlashCommand command)
+		private async Task ListLinksChannel(SocketSlashCommand command)
 		{
-			var user = await dbContext.Users.FirstOrDefaultAsync(x => x.DiscordId == command.User.Id, CancellationToken.None);
-
-			if (user is null)
-			{
-				await command.RespondAsync($"User {command.User.Id} was not found.");
-				return;
-			}
-
+			user = await dbContext.GetOrCreateAsync(command.User);
 			await command.RespondAsync($"User <@{command.User.Id}> has links channel set to <#{user.LinksChannelId}>.");
 		}
 
-		public async Task HandleSetLinksChannelCommandAsync(SocketSlashCommand command)
+		private async Task SetLinksChannel(SocketSlashCommand command)
 		{
 			if (command.Data.Options.FirstOrDefault(o => o.Name == "channel")?.Value is not SocketGuildChannel channel)
 			{
@@ -56,20 +44,10 @@ namespace DiscordBotHost.Commands.LinksChannel
 				return;
 			}
 
-			var user = await dbContext.Users.FirstOrDefaultAsync(x => x.DiscordId == command.User.Id, CancellationToken.None);
-			if (user == null)
-			{
-				user = dbContext.Add(
-					new DiscordUser(0,
-						command.User.Username,
-						command.User.Id,
-						firebaseId: "",
-						channel.Id)).Entity;
-			}
-
+			user = await dbContext.GetOrCreateAsync(command.User);
 			user.SetLinksChannelId(channel.Id);
+			await dbContext.SaveChangesAsync();
 
-			await dbContext.SaveChangesAsync(CancellationToken.None);
 			await command.RespondAsync($"Your links channel is set to <#{channel.Id}>", ephemeral: true);
 		}
 	}
