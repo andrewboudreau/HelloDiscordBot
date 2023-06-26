@@ -4,21 +4,11 @@ using MediatR;
 
 namespace DiscordBotHost;
 
-/// <summary>
-/// Created with CHATGPT https://chat.openai.com/share/f40a8c86-664b-46a3-88bb-1289e34cebb7
-/// </summary>
-public class DiscordEventListener
+public class DiscordEventListener(DiscordSocketClient client, IServiceScopeFactory serviceScopeFactory)
 {
-	private readonly DiscordSocketClient client;
-	private readonly IServiceScopeFactory serviceScopeFactory;
-	private readonly CancellationTokenSource cts;
-
-	public DiscordEventListener(DiscordSocketClient client, IServiceScopeFactory serviceScopeFactory)
-	{
-		this.client = client;
-		this.serviceScopeFactory = serviceScopeFactory;
-		cts = new CancellationTokenSource();
-	}
+	private readonly DiscordSocketClient client = client;
+	private readonly IServiceScopeFactory serviceScopeFactory = serviceScopeFactory;
+	private readonly CancellationTokenSource cts = new();
 
 	public async Task StartAsync(string discordToken)
 	{
@@ -42,7 +32,6 @@ public class DiscordEventListener
 
 		Log.Debug("DiscordEventListener binding event handlers completed.");
 		Log.Debug("DiscordEventListener starting completed.");
-
 	}
 
 	public async Task StopAsync()
@@ -68,6 +57,7 @@ public class DiscordEventListener
 		client.Ready -= OnReadyAsync;
 		client.MessageReceived -= OnMessageReceivedAsync;
 		client.ReactionAdded -= OnReactionAdded;
+		client.InteractionCreated -= OnInteractionCreated;
 
 		Log.Debug("DiscordEventListener removing event handlers completed.");
 		Log.Information("DiscordEventListener stopped.");
