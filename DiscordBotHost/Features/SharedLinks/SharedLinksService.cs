@@ -19,8 +19,8 @@ namespace DiscordBotHost.Commands.LinksChannel
 		
 		public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
 		{
-			Log.Information("Creating guild commands for MonitorContent");
-			foreach (var commandProperties in MonitorContentCommandDefinitions.MonitorContentCommands())
+			Log.Information("Creating guild commands for SharedLinks");
+			foreach (var commandProperties in SharedLinksCommandDefinitions.SetLinksChannelCommands())
 			{
 				await notification.Client.Rest.CreateGuildCommand(commandProperties, Globals.DiscordServerId);
 			}
