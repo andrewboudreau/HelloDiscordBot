@@ -1,6 +1,10 @@
 ﻿
+using Azure.Storage.Blobs;
+
 using DiscordBotHost.Commands.LinksChannel;
 using DiscordBotHost.EntityFramework;
+using DiscordBotHost.Features.Auditions.Parsers;
+using DiscordBotHost.Storage;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -39,10 +43,15 @@ var services = new ServiceCollection()
 		var guid = Guid.NewGuid();
 		return new Func<Guid>(() => guid);
 	})
-	.AddSingleton(_ => new QueueClient(config["AZURE_STORAGE"], "shares"))
-	.AddSingleton<AndroidShareQueueListener>()
-	.AddScoped<SharedLinksService>()
 	.AddMediatR(x => x.RegisterServicesFromAssemblyContaining<Program>())
+	.AddSingleton(_ => new QueueServiceClient(config["AZURE_STORAGE"]))
+	.AddSingleton(_ => new BlobServiceClient(config["AZURE_STORAGE"]))
+	.AddSingleton<AndroidShareQueueListener>(sp =>
+		new AndroidShareQueueListener(
+			queueClient: sp.GetRequiredService<QueueServiceClient>().GetQueueClient(config["AZURE_STORAGE_QUEUENAME"]),
+			serviceScopeFactory: sp.GetRequiredService<IServiceScopeFactory>()))
+	.AddSingleton<TextContentStore>(sp => new TextContentStore(sp.GetRequiredService<BlobServiceClient>().GetBlobContainerClient(config["AZURE_STORAGE_CONTAINERNAME"])))
+	.AddSingleton<GetTextFromUrl>()
 	.AddDbContext<DiscordBotDbContext>(options =>
 	{
 		options.UseSqlServer(

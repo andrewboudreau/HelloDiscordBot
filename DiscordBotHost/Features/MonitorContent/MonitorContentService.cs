@@ -1,7 +1,9 @@
 ﻿using DiscordBotHost.EntityFramework;
 using DiscordBotHost.Features;
+using DiscordBotHost.Features.Auditions.Parsers;
 using DiscordBotHost.Features.ContentMonitor;
 using DiscordBotHost.Notifications;
+using DiscordBotHost.Storage;
 
 using MediatR;
 
@@ -9,12 +11,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DiscordBotHost.Commands.LinksChannel
 {
-	public class MonitorContentService(DiscordBotDbContext dbContext) :
+	public class MonitorContentService :
 		INotificationHandler<ReadyNotification>,
 		INotificationHandler<SlashCommandNotification>,
 		INotificationHandler<MessageComponentNotification>
 	{
-		private readonly DiscordBotDbContext dbContext = dbContext;
+		private readonly DiscordBotDbContext dbContext;
+		private readonly TextContentStore textContentStore;
+		private readonly GetTextFromUrl getTextFromUrl;
+
+		public MonitorContentService(DiscordBotDbContext dbContext, TextContentStore textContentStore, GetTextFromUrl getTextFromUrl)
+		{
+			this.dbContext = dbContext;
+			this.textContentStore = textContentStore;
+			this.getTextFromUrl = getTextFromUrl;
+		}
 
 		public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
 		{
@@ -58,14 +69,33 @@ namespace DiscordBotHost.Commands.LinksChannel
 
 			if (request is null)
 			{
-				await command.RespondAsync("Could not find monitor request for id {requestId}", ephemeral: true);
+				await command.RespondAsync($"Could not find monitor request for id {requestId}", ephemeral: true);
 				return;
 			}
 
+			// var response = sender.Handle(new RunMonitorRequest(request, command));
+
+			var previousContent = string.Empty;
+
+			var lastInspection = await dbContext.ContentInspections
+				.OrderByDescending(x => x.ContentInspectionId)
+				.Where(x => x.MonitorContentRequest.MonitorContentRequestId == request.MonitorContentRequestId)
+				.FirstOrDefaultAsync();
+
+			if (lastInspection is not null)
+			{
+				previousContent = await textContentStore.Read(lastInspection);
+			}
+
+			var content = await getTextFromUrl.TransformHtmlToStringContent(request.Url, request.Selectors);
+
 			var inspection = request.StartInspection();
-			inspection.Compare("", "aaa");
+			inspection.Compare(previousContent, content);
+
 			dbContext.Add(inspection);
 			await dbContext.SaveChangesAsync(CancellationToken.None);
+
+			await textContentStore.Save(inspection, content);
 
 			await command.RespondAsync($"Monitor request for id `{requestId}` by user <@{command.User.Id}> was run, Threshold was {inspection.DifferenceValue}");
 		}
@@ -122,6 +152,21 @@ namespace DiscordBotHost.Commands.LinksChannel
 
 				await notification.Component.Channel.SendMessageAsync("Button was clicked!");
 			}
+		}
+	}
+
+	public static class TextContentStoreExtensions
+	{
+		public static async Task<string> Read(this TextContentStore store, ContentInspection inspection)
+		{
+			string previous = "";
+			await store.Read($"monitor-{inspection.MonitorContentRequest.MonitorContentRequestId}-inspection", inspection.ContentInspectionId, binaryData => previous = binaryData.ToString());
+			return previous;
+		}
+
+		public static async Task Save(this TextContentStore store, ContentInspection inspection, string content)
+		{
+			await store.Save($"monitor-{inspection.MonitorContentRequest.MonitorContentRequestId}-inspection", inspection.ContentInspectionId, BinaryData.FromString(content));
 		}
 	}
 }

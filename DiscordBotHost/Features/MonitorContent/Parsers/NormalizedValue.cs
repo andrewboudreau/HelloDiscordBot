@@ -5,7 +5,7 @@
 	/// </summary>
 	public struct NormalizedValue
 	{
-		private double value;
+		private readonly double value;
 
 		public NormalizedValue(double value)
 		{
