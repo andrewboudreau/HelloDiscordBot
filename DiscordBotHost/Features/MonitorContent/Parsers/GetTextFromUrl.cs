@@ -53,13 +53,18 @@ namespace DiscordBotHost.Features.Auditions.Parsers
 						.Replace("&nbsp;", " ", true, CultureInfo.InvariantCulture)
 						.Replace("  ", " ")
 						.Trim();
-					
+
 					if (nodeText.Trim() == "")
 					{
 						continue;
 					}
 
 					stringBuilder.AppendLine(nodeText.Trim());
+				}
+
+				if (node != nodes.Last())
+				{
+					stringBuilder.AppendLine();
 				}
 			}
 
