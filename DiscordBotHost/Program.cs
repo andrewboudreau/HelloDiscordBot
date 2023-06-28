@@ -50,7 +50,7 @@ var services = new ServiceCollection()
 		new AndroidShareQueueListener(
 			queueClient: sp.GetRequiredService<QueueServiceClient>().GetQueueClient(config["AZURE_STORAGE_QUEUENAME"]),
 			serviceScopeFactory: sp.GetRequiredService<IServiceScopeFactory>()))
-	.AddSingleton<TextContentStore>(sp => new TextContentStore(sp.GetRequiredService<BlobServiceClient>().GetBlobContainerClient(config["AZURE_STORAGE_CONTAINERNAME"])))
+	.AddSingleton<BlobStorage>(sp => new BlobStorage(sp.GetRequiredService<BlobServiceClient>().GetBlobContainerClient(config["AZURE_STORAGE_CONTAINERNAME"])))
 	.AddSingleton<GetTextFromUrl>()
 	.AddDbContext<DiscordBotDbContext>(options =>
 	{

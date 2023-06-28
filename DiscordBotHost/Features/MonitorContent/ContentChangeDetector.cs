@@ -1,7 +1,6 @@
-﻿using DiffPlex.DiffBuilder.Model;
+﻿using DiffPlex;
 using DiffPlex.DiffBuilder;
-using DiffPlex;
-using DiscordBotHost.Features.ContentMonitor.Parsers;
+using DiffPlex.DiffBuilder.Model;
 
 namespace DiscordBotHost.Features.ContentMonitor
 {
@@ -20,9 +19,9 @@ namespace DiscordBotHost.Features.ContentMonitor
 			int addedLines = diffResult.Lines.Where(x => x.Type == ChangeType.Inserted).Count();
 			int deletedLines = diffResult.Lines.Where(x => x.Type == ChangeType.Deleted).Count();
 
-			NormalizedValue changePercentage = (double)(addedLines + deletedLines) / (oldLines + newLines);
+			double changePercentage = (double)(addedLines + deletedLines) / (oldLines + newLines);
 
-			renderer($"Change detected. {addedLines} lines added, {deletedLines} lines deleted. Overall change: {changePercentage}%");
+			renderer($"Change detected. {addedLines} lines added, {deletedLines} lines deleted. Overall change: {changePercentage * 100}%");
 
 			// Print diff
 			foreach (var line in diffResult.Lines)
@@ -35,10 +34,7 @@ namespace DiscordBotHost.Features.ContentMonitor
 				{
 					renderer($"- {line.Text}");
 				}
-				else if (line.Type == ChangeType.Unchanged)
-				{
-					renderer($"  {line.Text}");
-				}
+				
 				else if (line.Type == ChangeType.Imaginary)
 				{
 					renderer($"? {line.Text}");

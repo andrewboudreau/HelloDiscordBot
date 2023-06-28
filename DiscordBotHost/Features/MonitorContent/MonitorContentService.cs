@@ -17,13 +17,13 @@ namespace DiscordBotHost.Commands.LinksChannel
 		INotificationHandler<MessageComponentNotification>
 	{
 		private readonly DiscordBotDbContext dbContext;
-		private readonly TextContentStore textContentStore;
+		private readonly BlobStorage blobs;
 		private readonly GetTextFromUrl getTextFromUrl;
 
-		public MonitorContentService(DiscordBotDbContext dbContext, TextContentStore textContentStore, GetTextFromUrl getTextFromUrl)
+		public MonitorContentService(DiscordBotDbContext dbContext, BlobStorage blobs, GetTextFromUrl getTextFromUrl)
 		{
 			this.dbContext = dbContext;
-			this.textContentStore = textContentStore;
+			this.blobs = blobs;
 			this.getTextFromUrl = getTextFromUrl;
 		}
 
@@ -84,7 +84,7 @@ namespace DiscordBotHost.Commands.LinksChannel
 
 			if (lastInspection is not null)
 			{
-				previousContent = await textContentStore.Read(lastInspection);
+				previousContent = await blobs.Read(lastInspection);
 			}
 
 			var content = await getTextFromUrl.TransformHtmlToStringContent(request.Url, request.Selectors);
@@ -95,7 +95,7 @@ namespace DiscordBotHost.Commands.LinksChannel
 			dbContext.Add(inspection);
 			await dbContext.SaveChangesAsync(CancellationToken.None);
 
-			await textContentStore.Save(inspection, content);
+			await blobs.Save(inspection, content);
 
 			await command.RespondAsync($"Monitor request for id `{requestId}` by user <@{command.User.Id}> was run, Threshold was {inspection.DifferenceValue}");
 		}
@@ -155,18 +155,23 @@ namespace DiscordBotHost.Commands.LinksChannel
 		}
 	}
 
-	public static class TextContentStoreExtensions
+	public static class BlobStorageExtensions
 	{
-		public static async Task<string> Read(this TextContentStore store, ContentInspection inspection)
+		public static async Task<string> Read(this BlobStorage store, ContentInspection inspection)
 		{
 			string previous = "";
-			await store.Read($"monitor-{inspection.MonitorContentRequest.MonitorContentRequestId}-inspection", inspection.ContentInspectionId, binaryData => previous = binaryData.ToString());
+			await store.Read(
+				BlobStorage.PathForTextContent($"monitor-{inspection.MonitorContentRequest.MonitorContentRequestId}-inspection", inspection.ContentInspectionId), 
+				binaryData => previous = binaryData.ToString());
+
 			return previous;
 		}
 
-		public static async Task Save(this TextContentStore store, ContentInspection inspection, string content)
+		public static async Task Save(this BlobStorage store, ContentInspection inspection, string content)
 		{
-			await store.Save($"monitor-{inspection.MonitorContentRequest.MonitorContentRequestId}-inspection", inspection.ContentInspectionId, BinaryData.FromString(content));
+			await store.Save(
+				BlobStorage.PathForTextContent($"monitor-{inspection.MonitorContentRequest.MonitorContentRequestId}-inspection", inspection.ContentInspectionId), 
+				BinaryData.FromString(content));
 		}
 	}
 }

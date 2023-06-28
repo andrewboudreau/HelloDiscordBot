@@ -12,11 +12,11 @@ namespace DiscordBotHost.Features.Auditions.Parsers
 {
 	public partial class GetTextFromUrl
 	{
-		private const string lineEnding = "\r\n";
+		private static readonly HttpClient httpClient;
 
-		private static readonly HttpClient httpClient = new();
 		static GetTextFromUrl()
 		{
+			httpClient = new HttpClient();
 			httpClient.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
 			httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.0.0");
 		}
@@ -43,24 +43,24 @@ namespace DiscordBotHost.Features.Auditions.Parsers
 				return string.Empty;
 			}
 
-			var stringBuilder = new StringBuilder();
-			var repeatedNewLineRegex = RepeatedNewLines();
-
+			StringBuilder stringBuilder = new();
 			foreach (var node in nodes)
 			{
-				var nodeText = node.InnerText.Trim()
-					.Replace("&nbsp;", " ", true, CultureInfo.InvariantCulture)
-					.Replace("\r\n", "\n")
-					.Replace("  ", " ")
-					.Trim();
-
-				nodeText = repeatedNewLineRegex.Replace(nodeText, "\n");
-				if (nodeText.Trim() == "")
+				foreach (var line in node.InnerText.Split("\n"))
 				{
-					continue;
-				}
+					var nodeText = line
+						.Replace("\r", "")
+						.Replace("&nbsp;", " ", true, CultureInfo.InvariantCulture)
+						.Replace("  ", " ")
+						.Trim();
+					
+					if (nodeText.Trim() == "")
+					{
+						continue;
+					}
 
-				stringBuilder.AppendLine(nodeText.Trim());
+					stringBuilder.AppendLine(nodeText.Trim());
+				}
 			}
 
 			return stringBuilder.ToString();
@@ -82,8 +82,5 @@ namespace DiscordBotHost.Features.Auditions.Parsers
 
 			return await response.Content.ReadAsStringAsync();
 		}
-
-		[GeneratedRegex("\n+")]
-		private static partial Regex RepeatedNewLines();
 	}
 }

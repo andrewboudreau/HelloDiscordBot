@@ -1,10 +1,13 @@
-﻿namespace DiscordBotHost.Features.ContentMonitor
+﻿using DiscordBotHost.Features.MonitorContent.Events;
+using DiscordBotHost.SeedWork;
+
+namespace DiscordBotHost.Features.ContentMonitor
 {
 	/// <summary>
 	/// Manages the monitoring of content from a URL. This class represents a single iteration of getting the content 
 	/// from the URL, extracting the text from the content, comparing the text, and storing the differences.
 	/// </summary>
-	public class ContentInspection
+	public class ContentInspection : Entity
 	{
 		/// <summary>
 		/// Delegate for comparing content.
@@ -88,10 +91,14 @@
 		public void Compare(string previous, string next, Func<string, string, (string[] Differences, double Difference)> compareContent)
 		{
 			var result = compareContent(previous, next);
-			if (result.Difference >= MonitorContentRequest.DifferenceThreshold)
+
+			DifferenceThreshold = MonitorContentRequest.DifferenceThreshold;
+			DifferenceValue = result.Difference;
+			Differences = string.Join('\n', result.Differences);
+
+			if (DifferenceValue >= DifferenceThreshold)
 			{
-				DifferenceValue = result.Difference;
-				Differences = string.Join('\n', result.Differences);
+				Add(new ContentChangeDetected(MonitorContentRequest, this));
 			}
 		}
 
