@@ -6,6 +6,13 @@ namespace DiscordBotHost.Features
 {
 	public static class SocketUserExtensions
 	{
+		public static async Task<User?> GetUser(this DiscordBotDbContext dbContext, ulong discordUserId)
+		{
+			return await dbContext.Users
+				.Where(x => x.DiscordUserId == discordUserId)
+				.FirstOrDefaultAsync();
+		}
+
 		public static async Task<User> GetOrCreateUser(this DiscordBotDbContext dbContext, SocketUser user)
 		{
 			var entity = await dbContext.Users

@@ -2,6 +2,7 @@
 using DiscordBotHost.Features;
 using DiscordBotHost.Features.ContentMonitor;
 using DiscordBotHost.Features.MonitorContent.Commands;
+using DiscordBotHost.Features.MonitorContent.Events;
 using DiscordBotHost.Notifications;
 
 using MediatR;
@@ -13,13 +14,16 @@ namespace DiscordBotHost.Commands.LinksChannel
 	public class MonitorContentService :
 		INotificationHandler<ReadyNotification>,
 		INotificationHandler<SlashCommandNotification>,
-		INotificationHandler<MessageComponentNotification>
+		INotificationHandler<MessageComponentNotification>,
+		INotificationHandler<ContentChangeDetected>
 	{
+		private readonly DiscordSocketClient client;
 		private readonly DiscordBotDbContext dbContext;
 		private readonly ISender sender;
 
-		public MonitorContentService(DiscordBotDbContext dbContext, ISender sender)
+		public MonitorContentService(DiscordSocketClient client, DiscordBotDbContext dbContext, ISender sender)
 		{
+			this.client = client;
 			this.dbContext = dbContext;
 			this.sender = sender;
 		}
@@ -129,6 +133,20 @@ namespace DiscordBotHost.Commands.LinksChannel
 
 				await notification.Component.Channel.SendMessageAsync("Button was clicked!");
 			}
+		}
+
+		public async Task Handle(ContentChangeDetected notification, CancellationToken cancellationToken)
+		{
+			var user = await dbContext.GetUser(notification.MonitorContentRequest.DiscordUserId)
+				?? throw new InvalidOperationException($"Not user found when handling content change for '{notification.MonitorContentRequest.DiscordUserId}'.");
+
+			if (await client.GetChannelAsync(user.LinksChannelId) is not IMessageChannel targetChannel)
+			{
+				Log.Error("The target channel was null when attempting to publish content changes.");
+				return;
+			}
+
+			await targetChannel.SendMessageAsync($"Content for Monitor request {notification.MonitorContentRequest.MonitorContentRequestId} has changed.");
 		}
 	}
 }

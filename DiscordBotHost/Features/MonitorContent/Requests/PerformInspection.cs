@@ -11,16 +11,17 @@ namespace DiscordBotHost.Features.MonitorContent.Commands
 {
 	public record PerformInspection(int MonitorContentRequestId) : IRequest<double>;
 
-	public class PerformInspectionRequestHandler(DiscordBotDbContext dbContext, BlobStorage textBlobs, GetTextFromUrl getTextFromUrl)
+	public class PerformInspectionRequestHandler(DiscordBotDbContext dbContext, BlobStorage textBlobs, GetTextFromUrl getTextFromUrl, IPublisher publisher)
 		: IRequestHandler<PerformInspection, double>
 	{
 		private readonly DiscordBotDbContext dbContext = dbContext;
 		private readonly BlobStorage textBlobs = textBlobs;
 		private readonly GetTextFromUrl getTextFromUrl = getTextFromUrl;
+		private readonly IPublisher publisher = publisher;
 
 		public async Task<double> Handle(PerformInspection request, CancellationToken cancellationToken)
 		{
-			var monitorContentRequest = 
+			var monitorContentRequest =
 				await GetMonitorContentRequest(request.MonitorContentRequestId);
 
 			string previousContent = string.Empty;
@@ -30,7 +31,7 @@ namespace DiscordBotHost.Features.MonitorContent.Commands
 			}
 
 			var content = await getTextFromUrl.TransformHtmlToStringContent(monitorContentRequest.Url, monitorContentRequest.Selector);
-			
+
 			var inspection = monitorContentRequest.StartNewInspection();
 			inspection.Compare(previousContent, content);
 
@@ -41,6 +42,11 @@ namespace DiscordBotHost.Features.MonitorContent.Commands
 			await dbContext.SaveChangesAsync(CancellationToken.None);
 
 			await textBlobs.Save(inspection, content);
+			foreach (var domainEvent in inspection.IDomainEvents)
+			{
+				await publisher.Publish(domainEvent, CancellationToken.None);
+			}
+
 			return inspection.DifferenceValue;
 		}
 
