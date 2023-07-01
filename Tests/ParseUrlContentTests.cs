@@ -1,36 +1,36 @@
-using DiscordBotHost.Features.Auditions.Parsers;
+using DiscordBotHost.Features.ContentMonitor;
 
 namespace Tests
 {
 	[TestClass]
 	public class ParseUrlContentTests
 	{
-		private ParseHtmlElementContentsFromUrl parser;
+		private ContentChangeDetector parser;
 
 		[TestInitialize]
 		public void TestInitialize()
 		{
-			parser = new ParseHtmlElementContentsFromUrl();
+			parser = new ContentChangeDetector();
 		}
 
 		[TestMethod]
-		public async Task ReadContent()
+		public void ReadContent()
 		{
 			var url = "https://www.theatreinchicago.com/auditions";
 			var selector = ".post.post-list-item";
 
-			var percentChange = await parser.DetectChange(url, selector, Serilog.Log.Information);
-			percentChange = await parser.DetectChange(url, selector, Serilog.Log.Information);
+			var percentChange = parser.DetectDifferences(url, selector, Serilog.Log.Information);
+			percentChange = parser.DetectDifferences(url, selector, Serilog.Log.Information);
 		}
 
 		[TestMethod]
-		public async Task ReadOtherContent()
+		public void ReadOtherContent()
 		{
 			var url = "https://www.florentineopera.org/auditions-employment";
 			var selector = ".Main-content";
 
-			var percentChange = await parser.DetectChange(url, selector, Serilog.Log.Information);
-			percentChange = await parser.DetectChange(url, selector, Serilog.Log.Information);
+			var percentChange = parser.DetectDifferences(url, selector, Serilog.Log.Information);
+			percentChange = parser.DetectDifferences(url, selector, Serilog.Log.Information);
 		}
 	}
 }

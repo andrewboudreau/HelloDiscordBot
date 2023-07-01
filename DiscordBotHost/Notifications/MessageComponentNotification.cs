@@ -2,7 +2,7 @@
 
 namespace DiscordBotHost.Notifications
 {
-	public class MessageComponentNotification : INotification
+	public class MessageComponentNotification : IDiscordNotification
 	{
 		public MessageComponentNotification(SocketMessageComponent component)
 		{
@@ -11,6 +11,4 @@ namespace DiscordBotHost.Notifications
 
 		public SocketMessageComponent Component { get; private set; }
 	}
-
-
 }

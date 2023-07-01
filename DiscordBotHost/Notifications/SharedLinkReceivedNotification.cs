@@ -1,6 +1,4 @@
-﻿using DiscordBotHost.EntityFramework;
-
-using MediatR;
+﻿using MediatR;
 
 namespace DiscordBotHost
 {

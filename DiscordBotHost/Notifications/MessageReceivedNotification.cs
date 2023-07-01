@@ -1,8 +1,10 @@
-﻿using MediatR;
+﻿using DiscordBotHost.Notifications;
+
+using MediatR;
 
 namespace DiscordBotHost
 {
-	public class MessageReceivedNotification : INotification
+	public class MessageReceivedNotification : IDiscordNotification
 	{
 		public MessageReceivedNotification(SocketMessage message, DiscordSocketClient client)
 		{

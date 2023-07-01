@@ -23,6 +23,11 @@ namespace DiscordBotHost.Storage
 			await containerClient.UploadBlobAsync(path, binaryData);
 		}
 
+		public Uri GetReadUrl(string path, TimeSpan validFor)
+		{
+			return containerClient.GetBlobClient(path).GenerateSasUri(Azure.Storage.Sas.BlobSasPermissions.Read, DateTimeOffset.Now.Add(validFor));
+		}
+
 		protected virtual string ContentPath(string source, int id)
 		{
 			return PathForTextContent(source, id);

@@ -4,13 +4,12 @@ using HtmlAgilityPack;
 
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 
 using Log = Serilog.Log;
 
 namespace DiscordBotHost.Features.Auditions.Parsers
 {
-	public partial class GetTextFromUrl
+	public class GetTextFromUrl
 	{
 		private static readonly HttpClient httpClient;
 

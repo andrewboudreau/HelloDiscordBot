@@ -1,8 +1,8 @@
-﻿using MediatR;
+﻿using DiscordBotHost.Notifications;
 
 namespace DiscordBotHost
 {
-	public class SlashCommandNotification : INotification
+	public class SlashCommandNotification : IDiscordNotification
 	{
 		public SlashCommandNotification(SocketSlashCommand command)
 		{

@@ -1,9 +1,9 @@
 ﻿
 using Azure.Storage.Blobs;
 
-using DiscordBotHost.Commands.LinksChannel;
 using DiscordBotHost.EntityFramework;
 using DiscordBotHost.Features.Auditions.Parsers;
+using DiscordBotHost.Features.MonitorContent;
 using DiscordBotHost.Storage;
 
 using Microsoft.EntityFrameworkCore;
@@ -51,6 +51,7 @@ var services = new ServiceCollection()
 			queueClient: sp.GetRequiredService<QueueServiceClient>().GetQueueClient(config["AZURE_STORAGE_QUEUENAME"]),
 			serviceScopeFactory: sp.GetRequiredService<IServiceScopeFactory>()))
 	.AddSingleton<BlobStorage>(sp => new BlobStorage(sp.GetRequiredService<BlobServiceClient>().GetBlobContainerClient(config["AZURE_STORAGE_CONTAINERNAME"])))
+	.AddSingleton<ContentMonitoringScheduler>()
 	.AddSingleton<GetTextFromUrl>()
 	.AddDbContext<DiscordBotDbContext>(options =>
 	{
@@ -78,6 +79,7 @@ using (var scope = services.CreateScope())
 // Services that require cleanup.
 DiscordEventListener? discordListener = default;
 AndroidShareQueueListener? storageQueueListener = default;
+ContentMonitoringScheduler? contentMonitoringScheduler = default;
 
 // Shutdown monitor
 using var shutdown = new CancellationTokenSource();
@@ -98,6 +100,10 @@ try
 	// Message bus
 	storageQueueListener = services.GetRequiredService<AndroidShareQueueListener>();
 	await storageQueueListener.StartAsync(shutdown.Token);
+
+	// Scheduler
+	contentMonitoringScheduler = services.GetRequiredService<ContentMonitoringScheduler>();
+	await contentMonitoringScheduler.StartAsync(shutdown.Token);
 
 	// Instructions
 	Log.Information(" ------------------------------");
@@ -124,6 +130,11 @@ finally
 	if (storageQueueListener is not null)
 	{
 		await storageQueueListener.StopAsync(CancellationToken.None);
+	}
+
+	if (contentMonitoringScheduler is not null)
+	{
+		await contentMonitoringScheduler.StopAsync(CancellationToken.None);
 	}
 
 	Log.Debug("Services disposing asynchronously.");

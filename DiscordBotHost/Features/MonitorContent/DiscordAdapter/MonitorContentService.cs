@@ -1,9 +1,8 @@
 ﻿using DiscordBotHost.EntityFramework;
 using DiscordBotHost.Features;
-using DiscordBotHost.Features.Auditions.Parsers;
 using DiscordBotHost.Features.ContentMonitor;
+using DiscordBotHost.Features.MonitorContent.Commands;
 using DiscordBotHost.Notifications;
-using DiscordBotHost.Storage;
 
 using MediatR;
 
@@ -17,14 +16,12 @@ namespace DiscordBotHost.Commands.LinksChannel
 		INotificationHandler<MessageComponentNotification>
 	{
 		private readonly DiscordBotDbContext dbContext;
-		private readonly BlobStorage blobs;
-		private readonly GetTextFromUrl getTextFromUrl;
+		private readonly ISender sender;
 
-		public MonitorContentService(DiscordBotDbContext dbContext, BlobStorage blobs, GetTextFromUrl getTextFromUrl)
+		public MonitorContentService(DiscordBotDbContext dbContext, ISender sender)
 		{
 			this.dbContext = dbContext;
-			this.blobs = blobs;
-			this.getTextFromUrl = getTextFromUrl;
+			this.sender = sender;
 		}
 
 		public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
@@ -73,31 +70,11 @@ namespace DiscordBotHost.Commands.LinksChannel
 				return;
 			}
 
-			// var response = sender.Handle(new RunMonitorRequest(request, command));
+			await command.DeferAsync();
 
-			var previousContent = string.Empty;
+			var response = await sender.Send(new PerformInspection(requestId));
 
-			var lastInspection = await dbContext.ContentInspections
-				.OrderByDescending(x => x.ContentInspectionId)
-				.Where(x => x.MonitorContentRequest.MonitorContentRequestId == request.MonitorContentRequestId)
-				.FirstOrDefaultAsync();
-
-			if (lastInspection is not null)
-			{
-				previousContent = await blobs.Read(lastInspection);
-			}
-
-			var content = await getTextFromUrl.TransformHtmlToStringContent(request.Url, request.Selectors);
-
-			var inspection = request.StartInspection();
-			inspection.Compare(previousContent, content);
-
-			dbContext.Add(inspection);
-			await dbContext.SaveChangesAsync(CancellationToken.None);
-
-			await blobs.Save(inspection, content);
-
-			await command.RespondAsync($"Monitor request for id `{requestId}` by user <@{command.User.Id}> was run, Threshold was {inspection.DifferenceValue}");
+			await command.FollowupAsync($"Monitor request for id `{requestId}` by user <@{command.User.Id}> was run, difference was {response}");
 		}
 
 		private async Task ListMonitors(SocketSlashCommand command)
@@ -133,7 +110,7 @@ namespace DiscordBotHost.Commands.LinksChannel
 			var selector = command.GetOptionValue("selector", defaultValue: "body");
 
 			var request = dbContext.MonitorContentRequests.Add(
-				MonitorContentRequest.TwiceQuickly(url, command.User.Id, selector)).Entity;
+				MonitorContentRequest.TwiceDailyForAMonth(url, command.User.Id, selector)).Entity;
 
 			await dbContext.SaveChangesAsync();
 
@@ -152,26 +129,6 @@ namespace DiscordBotHost.Commands.LinksChannel
 
 				await notification.Component.Channel.SendMessageAsync("Button was clicked!");
 			}
-		}
-	}
-
-	public static class BlobStorageExtensions
-	{
-		public static async Task<string> Read(this BlobStorage store, ContentInspection inspection)
-		{
-			string previous = "";
-			await store.Read(
-				BlobStorage.PathForTextContent($"monitor-{inspection.MonitorContentRequest.MonitorContentRequestId}-inspection", inspection.ContentInspectionId), 
-				binaryData => previous = binaryData.ToString());
-
-			return previous;
-		}
-
-		public static async Task Save(this BlobStorage store, ContentInspection inspection, string content)
-		{
-			await store.Save(
-				BlobStorage.PathForTextContent($"monitor-{inspection.MonitorContentRequest.MonitorContentRequestId}-inspection", inspection.ContentInspectionId), 
-				BinaryData.FromString(content));
 		}
 	}
 }

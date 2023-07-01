@@ -1,8 +1,8 @@
-﻿using MediatR;
+﻿using DiscordBotHost.Notifications;
 
 namespace DiscordBotHost;
 
-public class ReadyNotification : INotification
+public class ReadyNotification : IDiscordNotification
 {
 	public ReadyNotification(DiscordSocketClient client)
 	{

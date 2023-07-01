@@ -68,6 +68,11 @@ namespace DiscordBotHost.Features.ContentMonitor
 		public DateTimeOffset CreatedAt { get; private set; }
 
 		/// <summary>
+		/// The processed content from the url.
+		/// </summary>
+		public Uri? ContentSnapshotUrl { get; private set; }
+
+		/// <summary>
 		/// Possible error during the content comparison, if not errors occurred, this will be null.
 		/// </summary>
 		/// <remarks>This is only non-null when there was an error.</remarks>
@@ -109,6 +114,14 @@ namespace DiscordBotHost.Features.ContentMonitor
 		public void SetError(string error)
 		{
 			Error = error;
+		}
+
+		/// <summary>
+		/// Set the url for where the raw content is stored.
+		/// </summary>
+		public void SetContentSnapshotUrl(Uri url)
+		{
+			ContentSnapshotUrl = url;
 		}
 
 		public static ContentInspection From(MonitorContentRequest request)

@@ -1,16 +1,17 @@
-﻿namespace DiscordBotHost.Features.ContentMonitor
-{
+﻿using System.Collections.ObjectModel;
 
+namespace DiscordBotHost.Features.ContentMonitor
+{
 	/// <summary>
 	/// Represents a request to monitor the content of a URL.
 	/// </summary>
 	public class MonitorContentRequest
 	{
-		private MonitorContentRequest()
-		{
-		}
+		private MonitorContentRequest() { }
 
 		ContentMonitorSourceType sourceType;
+
+		private Collection<ContentInspection> contentInspections;
 
 		/// <summary>
 		/// Gets or sets the identifier of the URL content monitor request.
@@ -25,7 +26,7 @@
 		/// <summary>
 		/// Gets the CSS selectors to use when finding the content in the html.
 		/// </summary>
-		public string Selectors { get; set; }
+		public string Selector { get; set; }
 
 		/// <summary>
 		/// Gets the amount of time to wait between each check.
@@ -59,10 +60,15 @@
 		public ulong DiscordUserId { get; set; }
 
 		/// <summary>
+		/// Gets the content inspections for this monitor.
+		/// </summary>
+		public IReadOnlyCollection<ContentInspection> ContentInspections => contentInspections;
+
+		/// <summary>
 		/// Starts a new inspection for this request.
 		/// </summary>
 		/// <returns>The content inspection.</returns>
-		public ContentInspection StartInspection() => ContentInspection.From(this);
+		public ContentInspection StartNewInspection() => ContentInspection.From(this);
 
 		/// <summary>
 		/// Creates a new instance that monitors a URL once daily for the next week.
@@ -70,13 +76,13 @@
 		/// <param name="url">The URL to monitor.</param>
 		/// <param name="selectors">The CSS selectors to use. If none are provided, the entire body of the HTML will be used.</param>
 		/// <returns>A new <see cref="MonitorContentRequest"/> instance.</returns>
-		public static MonitorContentRequest DailyForTheNextWeek(string url, ulong discordUserId, params string[] selectors) => new()
+		public static MonitorContentRequest TwiceDailyForAMonth(Uri url, ulong discordUserId, params string[] selectors) => new()
 		{
-			Url = new(url),
-			Selectors = selectors.Any() ? string.Join("||", selectors) : "body",
+			Url = url,
+			Selector = selectors.Length != 0 ? string.Join("||", selectors) : "body",
 			CreatedAt = DateTimeOffset.UtcNow,
-			Interval = TimeSpan.FromDays(1),
-			RunUntil = DateTimeOffset.UtcNow.AddDays(7),
+			Interval = TimeSpan.FromHours(12),
+			RunUntil = DateTimeOffset.UtcNow.AddMonths(1),
 			DiscordUserId = discordUserId
 		};
 
@@ -89,7 +95,7 @@
 		public static MonitorContentRequest TwiceQuickly(Uri url, ulong discordUserId, params string[] selectors) => new()
 		{
 			Url = url,
-			Selectors = selectors.Any() ? string.Join("||", selectors) : "body",
+			Selector = selectors.Any() ? string.Join("||", selectors) : "body",
 			CreatedAt = DateTimeOffset.UtcNow,
 			Interval = TimeSpan.FromSeconds(30),
 			RunUntil = DateTimeOffset.UtcNow.AddSeconds(45),

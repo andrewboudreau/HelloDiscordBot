@@ -3,18 +3,11 @@ using DiscordBotHost.SeedWork;
 
 namespace DiscordBotHost.Features.MonitorContent.Events
 {
-	public class ContentChangeDetected : IDomainEvent
+	public class ContentChangeDetected(MonitorContentRequest monitorContentRequest, ContentInspection contentInspection) : IDomainEvent
 	{
-		private readonly DateTimeOffset occurredAt;
-		private readonly MonitorContentRequest monitorContentRequest;
-		private readonly ContentInspection contentInspection;
-
-		public ContentChangeDetected(MonitorContentRequest monitorContentRequest, ContentInspection contentInspection)
-		{
-			this.occurredAt = DateTimeOffset.Now;
-			this.monitorContentRequest = monitorContentRequest;
-			this.contentInspection = contentInspection;
-		}
+		private readonly MonitorContentRequest monitorContentRequest = monitorContentRequest;
+		private readonly ContentInspection contentInspection = contentInspection;
+		private readonly DateTimeOffset occurredAt = DateTimeOffset.Now;
 
 		public DateTimeOffset OccurredAt => occurredAt;
 
