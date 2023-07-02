@@ -2,16 +2,16 @@
 
 namespace DiscordBotHost.Features.Auditions.DomainEvents
 {
-    public class NewOpportunity : IDomainEvent
+    public class NewAuditionCall : IDomainEvent
     {
-        public NewOpportunity(Opportunity opportunity)
+        public NewAuditionCall(AuditionCall audition)
         {
-            Opportunity = opportunity;
+			Audition = audition;
             OccurredAt = DateTimeOffset.UtcNow;
         }
 
         public DateTimeOffset OccurredAt { get; init; }
 
-        public Opportunity Opportunity { get; init; }
+        public AuditionCall Audition { get; init; }
     }
 }

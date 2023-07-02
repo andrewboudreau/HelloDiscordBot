@@ -7,18 +7,7 @@ namespace DiscordBotHost.Features.Auditions.Parsers
 {
 	public class JobsArgs
 	{
-		public List<Job> Jobs { get; set; }
-	}
-
-	public class Job
-	{
-		public string Company { get; set; }
-		public string Name { get; set; }
-		public string Type { get; set; }
-		public string Description { get; set; }
-		public string Date { get; set; }
-		public string AuditionEndDate { get; set; }
-		public string? Url { get; set; }
+		public List<AuditionCall> Jobs { get; set; }
 	}
 
 	public class ParseTextContentForAuditionCall
@@ -30,21 +19,21 @@ namespace DiscordBotHost.Features.Auditions.Parsers
 			this.ai = ai;
 		}
 
-		public async Task<IEnumerable<Job>> ParseForAuditionCalls(string prompt)
+		public async Task<IEnumerable<AuditionCall>> ParseForAuditionCalls(string prompt)
 		{
 			Log.Information("AI RESPONSE TO '{prompt}'", prompt);
 
 			var messages = new List<Message>
 			{
-				new Message(Role.System, "You parse text and html and auditions and jobs"),
-				new Message(Role.User, $"Create any jobs found in {prompt}"),
+				new Message(Role.System, "You parse performance auditions and jobs"),
+				new Message(Role.User, $"Create any auditions found in {prompt}"),
 			};
 
 			var functions = new List<Function>
 			{
 				new Function(
-					name: "create_job",
-					description: "Create an job listing",
+					name: "create_audition",
+					description: "Create an audition call",
 					parameters: new JsonObject
 					{
 						["type"] = "object",
@@ -96,6 +85,9 @@ namespace DiscordBotHost.Features.Auditions.Parsers
 					})
 			};
 
+			string last = "";
+			string next = "";
+
 			ChatResponse? result = null;
 			var chatRequest = new ChatRequest(messages, functions: functions, functionCall: "auto", model: "gpt-4");
 			try
@@ -103,20 +95,25 @@ namespace DiscordBotHost.Features.Auditions.Parsers
 				result = await ai.ChatEndpoint.StreamCompletionAsync(chatRequest,
 				fragment =>
 				{
-					Log.Information("ChatResponseCost: still working. {usage}", fragment.GetHashCode());
+					next = fragment.Choices[0].Delta?.Function.Arguments.ToJsonString() ?? "";
+					if (next != last)
+					{
+						Log.Information("{next}", next);
+						last = next;
+					}
 				});
 			}
 			catch (Exception ex)
 			{
 				Log.Error(ex, "Error calling open ai");
 				//return $"Error calling open ai, {ex.Message}";
-				return Enumerable.Empty<Job>();
+				return Enumerable.Empty<AuditionCall>();
 			}
 
 			if (result is null)
 			{
 				Log.Error("The result from open ai was null");
-				return Enumerable.Empty<Job>();
+				return Enumerable.Empty<AuditionCall>();
 				//return "The result from open ai was null";
 			}
 
@@ -128,7 +125,7 @@ namespace DiscordBotHost.Features.Auditions.Parsers
 				result.FirstChoice.Message.Function.Arguments.ToJsonString(),
 				new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
 
-			return jobs?.Jobs ?? Enumerable.Empty<Job>();
+			return jobs?.Jobs ?? Enumerable.Empty<AuditionCall>();
 		}
 	}
 }

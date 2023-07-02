@@ -18,7 +18,7 @@ namespace DiscordBotHost.EntityFramework
 
 		public DbSet<User> Users { get; set; }
 
-		public DbSet<Opportunity> Opportunities { get; set; }
+		public DbSet<AuditionCall> Opportunities { get; set; }
 
 		public DbSet<MonitorContentRequest> MonitorContentRequests { get; set; }
 
@@ -31,7 +31,7 @@ namespace DiscordBotHost.EntityFramework
 			modelBuilder.Entity<User>().HasKey(x => x.Id);
 			modelBuilder.Entity<User>().Property(x => x.Id).ValueGeneratedNever();
 
-			modelBuilder.Entity<Opportunity>().HasKey(x => x.OpportunityId);
+			modelBuilder.Entity<AuditionCall>().HasKey(x => x.AuditionId);
 
 			modelBuilder.Entity<MonitorContentRequest>().HasKey(x => x.MonitorContentRequestId);
 
