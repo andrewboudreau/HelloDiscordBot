@@ -10,12 +10,7 @@ schema = {
       "type": "string",
       "description": "Name of the theater or production company"
     },
-    "Type": {
-      "type": "string",
-      "description": "Type of the opportunity",
-      "enum": ["Actor", "Actress", "Director", "Producer", "Writer", "Singer", "Ensemble", "Other"]
-    },
-    "ShowName": {
+    "Performance": {
       "type": "string",
       "description": "Name of the show or performance"
     },

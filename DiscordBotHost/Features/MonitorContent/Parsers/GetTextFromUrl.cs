@@ -2,7 +2,6 @@
 
 using HtmlAgilityPack;
 
-using System.Globalization;
 using System.Text;
 
 using Log = Serilog.Log;
@@ -11,6 +10,9 @@ namespace DiscordBotHost.Features.Auditions.Parsers
 {
 	public class GetTextFromUrl
 	{
+		private static readonly HashSet<string> blockElements = new() { "div", "p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "ul", "ol", "pre", "address", "blockquote", "dl", "fieldset", "form", "hr", "noscript", "table" };
+		private static readonly HashSet<string> ignoredElements = new() { "noscript", "hr", "script", "style", "meta", "link", "head", "iframe" };
+
 		private static readonly HttpClient httpClient;
 
 		static GetTextFromUrl()
@@ -45,31 +47,11 @@ namespace DiscordBotHost.Features.Auditions.Parsers
 			StringBuilder stringBuilder = new();
 			foreach (var node in nodes)
 			{
-				foreach (var line in node.InnerText.Split("\n"))
-				{
-					var nodeText = line
-						.Replace("\r", "")
-						.Replace("&nbsp;", " ", true, CultureInfo.InvariantCulture)
-						.Replace("  ", " ")
-						.Trim();
-
-					if (nodeText.Trim() == "")
-					{
-						continue;
-					}
-
-					stringBuilder.AppendLine(nodeText.Trim());
-				}
-
-				if (node != nodes.Last())
-				{
-					stringBuilder.AppendLine();
-				}
+				TraverseNode(node, stringBuilder);
 			}
 
 			return stringBuilder.ToString();
 		}
-
 
 		public static async Task<string> GetHtml(Uri url)
 		{
@@ -86,5 +68,95 @@ namespace DiscordBotHost.Features.Auditions.Parsers
 
 			return await response.Content.ReadAsStringAsync();
 		}
+
+		private void TraverseNode(HtmlNode node, StringBuilder stringBuilder)
+		{
+			if (node.NodeType == HtmlNodeType.Element)
+			{
+				if (ignoredElements.Contains(node.Name))
+				{
+					return;
+				}
+
+				if (node.Name == "a")
+				{
+					var innerText = node.InnerText.Trim();
+					if (!string.IsNullOrEmpty(innerText)) // Check if the inner text is not empty
+					{
+						stringBuilder.Append($"<a href=\"{node.GetAttributeValue("href", "")}\">{innerText}</a>");
+					}
+				}
+				else
+				{
+					foreach (var child in node.ChildNodes)
+					{
+						TraverseNode(child, stringBuilder);
+					}
+					if (blockElements.Contains(node.Name) && !EndsWithTwoWhitespaceThings(stringBuilder))
+					{
+						stringBuilder.AppendLine();
+					}
+					else if (!EndsWithTwoWhitespaceThings(stringBuilder))
+					{
+						stringBuilder.Append(' ');
+					}
+				}
+			}
+			else if (node.NodeType == HtmlNodeType.Text)
+			{
+				var trimmedText = node.InnerText
+					.Replace("&nbsp;", " ")
+					.Replace("  ", " ")
+					.Replace(Environment.NewLine + Environment.NewLine, Environment.NewLine)
+					.Trim();
+
+				if (trimmedText != "")
+				{
+					stringBuilder.Append(trimmedText.Trim());
+				}
+			}
+		}
+
+		private static bool EndsWithTwoWhitespaceThings(StringBuilder stringBuilder)
+		{
+			string content = stringBuilder.ToString();
+			if(content.Length == 0)
+			{
+				return true;
+			}
+
+			if (content.Length < 2)
+			{
+				return false;
+			}
+
+			// Check for double newlines
+			if (content.Length >= 5 &&
+				content.EndsWith(Environment.NewLine + Environment.NewLine + Environment.NewLine))
+			{
+				return true;
+			}
+
+			// Check for double spaces followed by a newline
+			if (content.Length >= 3 &&
+				content.EndsWith("  " + Environment.NewLine))
+			{
+				return true;
+			}
+
+			return false;
+		}
+
+		public static Uri TrimUri(Uri uri)
+		{
+			string scheme = uri.Scheme.ToLowerInvariant();
+			string host = uri.DnsSafeHost.ToLowerInvariant();
+			string path = uri.AbsolutePath.TrimEnd('/');
+
+			return new Uri($"{scheme}://{host}{path}");
+		}
+
+		public static Uri TrimUri(string uri)
+			=> TrimUri(new Uri(uri));
 	}
 }

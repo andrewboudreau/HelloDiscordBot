@@ -57,7 +57,7 @@ namespace DiscordBotHost.Features.Auditions
 				};
 
 			var created = new NewOpportunity(opportunity);
-			opportunity.Add(created);
+			opportunity.AddEvent(created);
 
 			return opportunity;
 		}

@@ -65,16 +65,24 @@ public class DiscordEventListener(DiscordSocketClient client, IServiceScopeFacto
 
 	protected virtual async Task OnInteractionCreated(SocketInteraction arg)
 	{
-		if (arg is SocketSlashCommand command) 
+		try
 		{
-			await serviceScopeFactory.PublishNotification(
-				new SlashCommandNotification(command), cts);
-		}
+			if (arg is SocketSlashCommand command)
+			{
+				await serviceScopeFactory.PublishNotification(
+					new SlashCommandNotification(command), cts);
+			}
 
-		if (arg is SocketMessageComponent component)
+			if (arg is SocketMessageComponent component)
+			{
+				await serviceScopeFactory.PublishNotification(
+					new MessageComponentNotification(component), cts);
+			}
+		}
+		catch(Exception ex)
 		{
-			await serviceScopeFactory.PublishNotification(
-				new MessageComponentNotification(component), cts);
+			Log.Error(ex, "Error in OnInteractionCreated");
+			throw;
 		}
 	}
 

@@ -6,9 +6,9 @@ namespace DiscordBotHost.Features.ContentMonitor
 {
 	public class ContentChangeDetector
 	{
-		private const char lineEnding = '\n';
+		private static readonly string lineEnding = Environment.NewLine;
 
-		public double DetectDifferences(string previousContent, string content, Action<string> renderer)
+		public double DetectDifferences(string previousContent, string content, Action<string> diffs, Action<string> added)
 		{
 			var diffBuilder = new InlineDiffBuilder(new Differ());
 			var diffResult = diffBuilder.BuildDiffModel(previousContent, content);
@@ -21,23 +21,24 @@ namespace DiscordBotHost.Features.ContentMonitor
 
 			double changePercentage = (double)(addedLines + deletedLines) / (oldLines + newLines);
 
-			renderer($"Change detected. {addedLines} lines added, {deletedLines} lines deleted. Overall change: {changePercentage * 100}%");
+			diffs($"Change detected. {addedLines} lines added, {deletedLines} lines deleted. Overall change: {changePercentage * 100}%");
 
 			// Print diff
 			foreach (var line in diffResult.Lines)
 			{
 				if (line.Type == ChangeType.Inserted)
 				{
-					renderer($"+ {line.Text}");
+					diffs($"+ {line.Text}");
+					added(line.Text);
 				}
 				else if (line.Type == ChangeType.Deleted)
 				{
-					renderer($"- {line.Text}");
+					diffs($"- {line.Text}");
 				}
 				
 				else if (line.Type == ChangeType.Imaginary)
 				{
-					renderer($"? {line.Text}");
+					diffs($"? {line.Text}");
 				}
 			}
 

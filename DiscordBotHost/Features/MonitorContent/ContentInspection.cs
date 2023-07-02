@@ -12,7 +12,7 @@ namespace DiscordBotHost.Features.ContentMonitor
 		/// <summary>
 		/// Delegate for comparing content.
 		/// </summary>
-		private readonly Func<string, string, (string[] Differences, double Difference)> compareContent;
+		private readonly Func<string, string, (string[] NewContent, string[] Differences, double Difference)> compareContent;
 
 		/// <summary>
 		/// Private constructor used for initialization.
@@ -23,8 +23,10 @@ namespace DiscordBotHost.Features.ContentMonitor
 			compareContent = (prev, next) =>
 			{
 				var differences = new List<string>();
-				var difference = detector.DetectDifferences(prev, next, diff => differences.Add(diff));
-				return (differences.ToArray(), difference);
+				var newContent = new List<string>();
+
+				var difference = detector.DetectDifferences(prev, next, diff => differences.Add(diff), added => newContent.Add(added));
+				return (newContent.ToArray(), differences.ToArray(), difference);
 			};
 		}
 
@@ -32,7 +34,7 @@ namespace DiscordBotHost.Features.ContentMonitor
 		/// Public constructor initializing the class with a specific comparison method.
 		/// </summary>
 		/// <param name="compareContent">A method to be used for content comparison.</param>
-		public ContentInspection(Func<string, string, (string[] Differences, double Difference)> compareContent)
+		public ContentInspection(Func<string, string, (string[] NewContent, string[] Differences, double Difference)> compareContent)
 		{
 			this.compareContent = compareContent;
 		}
@@ -93,17 +95,23 @@ namespace DiscordBotHost.Features.ContentMonitor
 		/// <param name="previous">Previous content string.</param>
 		/// <param name="next">Next content string.</param>
 		/// <param name="compareContent">Specific content comparison method.</param>
-		public void Compare(string previous, string next, Func<string, string, (string[] Differences, double Difference)> compareContent)
+		public void Compare(string previous, string next, Func<string, string, (string[] NewContent, string[] Differences, double Difference)> compareContent)
 		{
 			var result = compareContent(previous, next);
 
 			DifferenceThreshold = MonitorContentRequest.DifferenceThreshold;
 			DifferenceValue = result.Difference;
-			Differences = string.Join('\n', result.Differences);
-
+			Differences = string.Join(Environment.NewLine, result.Differences);
+			
+			
 			if (DifferenceValue >= DifferenceThreshold)
 			{
-				Add(new ContentChangeDetected(MonitorContentRequest, this));
+				var newContent = string.Join(Environment.NewLine, result.NewContent);
+				AddEvent(
+					new ContentChangeDetected(
+						newContent,
+						MonitorContentRequest,
+						this));
 			}
 		}
 

@@ -13,7 +13,7 @@
 
 		public IReadOnlyCollection<IDomainEvent> IDomainEvents => domainEvents?.AsReadOnly() ?? empty;
 
-		protected void Add(IDomainEvent eventItem)
+		protected void AddEvent(IDomainEvent eventItem)
 		{
 			domainEvents ??= new List<IDomainEvent>();
 			domainEvents.Add(eventItem);

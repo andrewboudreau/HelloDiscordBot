@@ -1,5 +1,8 @@
-﻿using DiscordBotHost.EntityFramework;
+﻿using Azure.Storage.Blobs.Models;
+
+using DiscordBotHost.EntityFramework;
 using DiscordBotHost.Features;
+using DiscordBotHost.Features.Auditions.Parsers;
 using DiscordBotHost.Features.ContentMonitor;
 using DiscordBotHost.Features.MonitorContent.Commands;
 using DiscordBotHost.Features.MonitorContent.Events;
@@ -20,12 +23,18 @@ namespace DiscordBotHost.Commands.LinksChannel
 		private readonly DiscordSocketClient client;
 		private readonly DiscordBotDbContext dbContext;
 		private readonly ISender sender;
+		private readonly OpenAIClient openai;
 
-		public MonitorContentService(DiscordSocketClient client, DiscordBotDbContext dbContext, ISender sender)
+		public MonitorContentService(
+			DiscordSocketClient client,
+			DiscordBotDbContext dbContext,
+			ISender sender,
+			OpenAIClient openai)
 		{
 			this.client = client;
 			this.dbContext = dbContext;
 			this.sender = sender;
+			this.openai = openai;
 		}
 
 		public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
@@ -137,16 +146,74 @@ namespace DiscordBotHost.Commands.LinksChannel
 
 		public async Task Handle(ContentChangeDetected notification, CancellationToken cancellationToken)
 		{
-			var user = await dbContext.GetUser(notification.MonitorContentRequest.DiscordUserId)
-				?? throw new InvalidOperationException($"Not user found when handling content change for '{notification.MonitorContentRequest.DiscordUserId}'.");
-
-			if (await client.GetChannelAsync(user.LinksChannelId) is not IMessageChannel targetChannel)
+			if (await client.GetChannelAsync(Globals.DefaultBotLogChannelId) is not IMessageChannel targetChannel)
 			{
 				Log.Error("The target channel was null when attempting to publish content changes.");
 				return;
 			}
 
-			await targetChannel.SendMessageAsync($"Content for Monitor request {notification.MonitorContentRequest.MonitorContentRequestId} has changed.");
+			await targetChannel.SendMessageAsync($"Content {notification.MonitorContentRequest.Url} has changed.");
+
+			var auditions = new ParseTextContentForAuditionCall(openai);
+			var jobs = await auditions.ParseForAuditionCalls(notification.NewContent);
+
+			foreach (var job in jobs)
+			{
+				job.Url = PrepareUrl(job.Url, notification.MonitorContentRequest.Url);
+				await targetChannel.SendMessageAsync(embed: BuildJobEmbed(job));
+				await Task.Delay(1000, cancellationToken);
+			}
+		}
+
+		public static Embed BuildJobEmbed(Job job)
+		{
+			var embedBuilder = new EmbedBuilder();
+			embedBuilder.WithColor(Color.Blue);
+
+			if (!string.IsNullOrEmpty(job.Name))
+			{
+				embedBuilder.WithTitle(job.Name);
+			}
+
+			if (!string.IsNullOrEmpty(job.Company))
+			{
+				embedBuilder.WithAuthor(job.Company);
+			}
+
+			if (!string.IsNullOrEmpty(job.Description))
+			{
+				embedBuilder.WithDescription(job.Description);
+			}
+
+			if (!string.IsNullOrEmpty(job.Url))
+			{
+				embedBuilder.WithUrl(job.Url);
+			}
+
+			embedBuilder
+				.AddField("Audition Date", job.Date ?? "n/a");
+
+			return embedBuilder.Build();
+		}
+
+		public static string PrepareUrl(string? path, Uri monitorUrl)
+		{
+			if (string.IsNullOrEmpty(path) || !path.ToLowerInvariant().StartsWith("http"))
+			{
+				return monitorUrl.ToString();
+			}
+
+			if (!Uri.TryCreate(path, UriKind.RelativeOrAbsolute, out var link))
+			{
+				return monitorUrl.ToString();
+			}
+
+			if (link.IsAbsoluteUri)
+			{
+				return link.ToString();
+			}
+
+			return new Uri(monitorUrl, link).ToString();
 		}
 	}
 }

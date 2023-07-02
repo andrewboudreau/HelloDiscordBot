@@ -153,4 +153,6 @@ public static class Globals
 
 	public const ulong DefaultBotLogChannelId = 1057059014950780938;
 	public const ulong DefaultChannelId = DefaultBotLogChannelId;
+
+	public const ulong AuditionCallsChannelId = 1125103202166124639;
 }
